@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://tripwire.dawnika.dev/schemas/rule.schema.json",
+  "title": "TripwireRule",
+  "type": "object",
+  "required": ["id", "name", "severity", "category", "description", "applies_to"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(ioc|cred|persist|net|meta)\\.[a-z0-9-]+(\\.[a-z0-9-]+)*$"
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "info"]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "credential-access",
+        "persistence",
+        "defense-evasion",
+        "exfiltration",
+        "metadata"
+      ]
+    },
+    "description": { "type": "string", "minLength": 1 },
+    "applies_to": {
+      "type": "object",
+      "properties": {
+        "event_kind": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["read", "write", "open", "create", "unlink", "rename"]
+          },
+          "minItems": 1
+        },
+        "path": {
+          "type": "object",
+          "properties": {
+            "home_relative": { "type": "array", "items": { "type": "string" } },
+            "glob": { "type": "array", "items": { "type": "string" } },
+            "starts_with": { "type": "array", "items": { "type": "string" } },
+            "equals": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        },
+        "ancestry_category": {
+          "type": "object",
+          "properties": {
+            "in": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ancestry_category" }
+            },
+            "not_in": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ancestry_category" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "ecosystem": {
+          "type": "object",
+          "properties": {
+            "in": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["npm", "pypi", "other"] }
+            },
+            "not_in": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["npm", "pypi", "other"] }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "references": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" }
+    },
+    "authored": { "type": "string", "format": "date" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "disabled": { "type": "boolean" },
+    "deprecated": { "type": "boolean" },
+    "replaced_by": { "type": "string" }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "ancestry_category": {
+      "type": "string",
+      "enum": [
+        "human-shell",
+        "agent-direct",
+        "agent-subprocess",
+        "package-manager-direct",
+        "package-manager-spawned",
+        "unknown"
+      ]
+    }
+  }
+}

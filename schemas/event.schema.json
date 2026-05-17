@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://tripwire.dawnika.dev/schemas/event.schema.json",
+  "title": "TripwireEvent",
+  "type": "object",
+  "required": ["event_id", "timestamp", "source", "severity", "rule_id", "identity"],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "string",
+      "enum": ["fs_watcher", "net_correlator", "manual"]
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "info"]
+    },
+    "rule_id": { "type": "string" },
+    "rule_name": { "type": "string" },
+    "path": { "type": "string" },
+    "event_kind": {
+      "type": "string",
+      "enum": ["read", "write", "open", "create", "unlink", "rename"]
+    },
+    "identity": {
+      "type": "object",
+      "required": ["pid", "process_path", "ancestry_summary_hash", "category"],
+      "properties": {
+        "pid": { "type": "integer" },
+        "process_path": { "type": "string" },
+        "argv": { "type": "array", "items": { "type": "string" } },
+        "parent_agent_session_id": { "type": ["string", "null"] },
+        "ancestry_summary_hash": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": [
+            "human-shell",
+            "agent-direct",
+            "agent-subprocess",
+            "package-manager-direct",
+            "package-manager-spawned",
+            "unknown"
+          ]
+        },
+        "ancestry_summary": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "package": {
+      "type": "object",
+      "description": "Best-effort attribution: which installed package contained the firing executable.",
+      "properties": {
+        "ecosystem": { "type": "string", "enum": ["npm", "pypi", "other"] },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "ioc_attribution": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": { "type": "string" },
+              "campaign": { "type": "string" }
+            },
+            "required": ["source"]
+          }
+        }
+      }
+    },
+    "snoozed": { "type": "boolean", "default": false },
+    "notified": { "type": "boolean", "default": false },
+    "user_action": {
+      "type": "string",
+      "enum": ["pending", "allowlisted", "dismissed", "investigated"]
+    }
+  }
+}

@@ -4,7 +4,9 @@ A runtime detection daemon for developer workstations. Watches your sensitive pa
 
 ## Status
 
-Pre-implementation. The full specification lives in [`spec/`](./spec/):
+**Phase 1, step 1 in progress.** Monorepo scaffold, `@tripwire/shared` (types, severity helpers, ancestry-category precedence, logger), and JSON schemas for events and rules have landed. Next: `@tripwire/store` (SQLite + migrations) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
+
+The full specification lives in [`spec/`](./spec/):
 
 - [`spec/README.md`](./spec/README.md) — project pitch and quick start
 - [`spec/agent-tripwire-spec.md`](./spec/agent-tripwire-spec.md) — technical specification
