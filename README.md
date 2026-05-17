@@ -4,7 +4,7 @@ A runtime detection daemon for developer workstations. Watches your sensitive pa
 
 ## Status
 
-**Phase 1, step 1 in progress.** Monorepo scaffold, `@tripwire/shared` (types, severity helpers, ancestry-category precedence, logger), and JSON schemas for events and rules have landed. Next: `@tripwire/store` (SQLite + migrations) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
+**Phase 1, step 2 complete.** Monorepo scaffold, `@tripwire/shared`, and `@tripwire/store` (SQLite via `better-sqlite3`, four tables from spec §6.11, migration tracking, repository classes with 38 tests) have landed. Next: `@tripwire/feeds` — Phase 0 IoC seeder (Aikido + OSV + GHSA) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
 
 The full specification lives in [`spec/`](./spec/):
 
