@@ -4,7 +4,7 @@ A runtime detection daemon for developer workstations. Watches your sensitive pa
 
 ## Status
 
-**Phase 1, step 2 complete.** Monorepo scaffold, `@tripwire/shared`, and `@tripwire/store` (SQLite via `better-sqlite3`, four tables from spec §6.11, migration tracking, repository classes with 38 tests) have landed. Next: `@tripwire/feeds` — Phase 0 IoC seeder (Aikido + OSV + GHSA) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
+**Phase 0 + Phase 1 steps 1–3 complete.** Monorepo scaffold, `@tripwire/shared`, `@tripwire/store` (SQLite + 4 tables), and `@tripwire/feeds` (Aikido fetcher + `FeedSource` interface + merger + orchestrator) have landed. Smoke-tested against the live Aikido endpoint: 129K IoCs parsed cleanly. Next: AWS Lambda deployment to publish a merged snapshot to S3 on a daily schedule, then `@tripwire/watcher` (fanotify/fsevents) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
 
 The full specification lives in [`spec/`](./spec/):
 
