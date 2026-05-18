@@ -4,7 +4,11 @@ A runtime detection daemon for developer workstations. Watches your sensitive pa
 
 ## Status
 
-**Phase 0 + Phase 1 steps 1–3 complete.** Monorepo scaffold, `@tripwire/shared`, `@tripwire/store` (SQLite + 4 tables), and `@tripwire/feeds` (Aikido fetcher + `FeedSource` interface + merger + orchestrator) have landed. Smoke-tested against the live Aikido endpoint: 129K IoCs parsed cleanly. Next: AWS Lambda deployment to publish a merged snapshot to S3 on a daily schedule, then `@tripwire/watcher` (fanotify/fsevents) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
+**Phase 0 deployed.** The IoC seeder is live: a daily 06:00 UTC Lambda fetches Aikido's npm + PyPI malware lists, merges them, and publishes `latest.json` (~28 MB, ~130K IoCs) to S3. See [`infrastructure/`](./infrastructure/) for the CloudFormation template and deploy script.
+
+Library packages landed: `@tripwire/shared` (types + ancestry precedence + severity), `@tripwire/store` (SQLite + 4 tables from spec §6.11), `@tripwire/feeds` (Aikido fetcher + `FeedSource` interface + merger + orchestrator), `@tripwire/lambda-seeder` (handler + bundling).
+
+Next: `@tripwire/watcher` (fanotify/fsevents) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
 
 The full specification lives in [`spec/`](./spec/):
 

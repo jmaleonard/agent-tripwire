@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: agent-tripwire IoC seeder Lambda + S3 snapshot bucket + daily schedule.
+
+Parameters:
+  CodeS3Bucket:
+    Type: String
+    Description: Bucket holding the bundled Lambda code zip (typically agent-trip-wire-git).
+  CodeS3Key:
+    Type: String
+    Description: Key (path) to the Lambda zip inside CodeS3Bucket.
+  Schedule:
+    Type: String
+    Default: 'cron(0 6 * * ? *)'
+    Description: EventBridge cron expression (UTC). Default is daily 06:00 UTC.
+  SnapshotsBucketName:
+    Type: String
+    Description: Name of the snapshots bucket to create. Must be globally unique.
+
+Resources:
+  SnapshotsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref SnapshotsBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  SeederRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SnapshotsBucketWrite
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                Resource: !Sub '${SnapshotsBucket.Arn}/*'
+
+  SeederFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: agent-tripwire-seeder
+      Runtime: nodejs22.x
+      Handler: handler.handler
+      Role: !GetAtt SeederRole.Arn
+      Code:
+        S3Bucket: !Ref CodeS3Bucket
+        S3Key: !Ref CodeS3Key
+      Timeout: 300
+      MemorySize: 512
+      Architectures: [arm64]
+      Environment:
+        Variables:
+          SNAPSHOT_BUCKET: !Ref SnapshotsBucket
+          NODE_OPTIONS: '--enable-source-maps'
+
+  SeederLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SeederFunction}'
+      RetentionInDays: 30
+
+  SeederSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: agent-tripwire-seeder-schedule
+      ScheduleExpression: !Ref Schedule
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt SeederFunction.Arn
+          Id: SeederFunctionTarget
+
+  SeederSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SeederFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt SeederSchedule.Arn
+
+Outputs:
+  SnapshotsBucketName:
+    Value: !Ref SnapshotsBucket
+    Description: S3 bucket holding daily merged IoC snapshots.
+  SeederFunctionName:
+    Value: !Ref SeederFunction
+  SeederFunctionArn:
+    Value: !GetAtt SeederFunction.Arn
+  ScheduleArn:
+    Value: !GetAtt SeederSchedule.Arn
