@@ -6,9 +6,9 @@ A runtime detection daemon for developer workstations. Watches your sensitive pa
 
 **Phase 0 deployed.** The IoC seeder is live: a daily 06:00 UTC Lambda fetches Aikido's npm + PyPI malware lists, merges them, and publishes `latest.json` (~28 MB, ~130K IoCs) to S3. See [`infrastructure/`](./infrastructure/) for the CloudFormation template and deploy script.
 
-Library packages landed: `@tripwire/shared` (types + ancestry precedence + severity), `@tripwire/store` (SQLite + 4 tables from spec §6.11), `@tripwire/feeds` (Aikido fetcher + `FeedSource` interface + merger + orchestrator), `@tripwire/lambda-seeder` (handler + bundling).
+Library packages landed: `@tripwire/shared` (types + ancestry precedence + severity), `@tripwire/store` (SQLite + 4 tables from spec §6.11), `@tripwire/feeds` (Aikido fetcher + `FeedSource` interface + merger + orchestrator), `@tripwire/lambda-seeder` (handler + bundling), `@tripwire/watcher` (`FsEvent` + `FsWatcher` interface + `MockFsWatcher`; real fanotify/fsevents helpers in a follow-up PR).
 
-Next: `@tripwire/watcher` (fanotify/fsevents) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
+Next: `@tripwire/identity` (process tree walker + ancestry classifier) per [`spec/agent-tripwire-spec.md §12`](./spec/agent-tripwire-spec.md).
 
 The full specification lives in [`spec/`](./spec/):
 

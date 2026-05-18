@@ -20,6 +20,7 @@ export default defineConfig({
       '@tripwire/shared': resolve(__dirname, 'packages/shared/src/index.ts'),
       '@tripwire/store': resolve(__dirname, 'packages/store/src/index.ts'),
       '@tripwire/feeds': resolve(__dirname, 'packages/feeds/src/index.ts'),
+      '@tripwire/watcher': resolve(__dirname, 'packages/watcher/src/index.ts'),
     },
   },
 });
