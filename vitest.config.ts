@@ -22,6 +22,7 @@ export default defineConfig({
       '@tripwire/feeds': resolve(__dirname, 'packages/feeds/src/index.ts'),
       '@tripwire/watcher': resolve(__dirname, 'packages/watcher/src/index.ts'),
       '@tripwire/identity': resolve(__dirname, 'packages/identity/src/index.ts'),
+      '@tripwire/engine': resolve(__dirname, 'packages/engine/src/index.ts'),
     },
   },
 });
