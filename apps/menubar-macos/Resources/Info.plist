@@ -24,5 +24,13 @@
     <string>13.0</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 Dawnika.</string>
+    <!-- Allow http://localhost:* — the daemon dashboard. Codesigned apps
+         enforce App Transport Security strictly otherwise, silently blocking
+         URLSession requests to the daemon. -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
 </dict>
 </plist>
