@@ -7,6 +7,7 @@ import { iocCommand } from './commands/ioc.js';
 import { setupCommand } from './commands/setup.js';
 import { snoozeCommand } from './commands/snooze.js';
 import { statusCommand } from './commands/status.js';
+import { testEventCommand } from './commands/test-event.js';
 import { uninstallCommand } from './commands/uninstall.js';
 
 type Handler = (args: string[]) => Promise<number>;
@@ -20,6 +21,7 @@ const COMMANDS: Record<string, Handler> = {
   ioc: iocCommand,
   dashboard: dashboardCommand,
   daemon: daemonCommand,
+  'test-event': testEventCommand,
   uninstall: uninstallCommand,
 };
 
@@ -59,6 +61,7 @@ ${c.bold}Commands${c.reset}
   ${c.cyan}ioc${c.reset} <package>  look up IoC entries for a package
   ${c.cyan}dashboard${c.reset}      open http://localhost:7878 in your browser
   ${c.cyan}doctor${c.reset}         health checks (Node version, daemon reachable, etc.)
+  ${c.cyan}test-event${c.reset}     inject a synthetic FsEvent into the running daemon
   ${c.cyan}uninstall${c.reset}      print uninstall steps; --purge also deletes ~/.tripwire/
 
 ${c.bold}Examples${c.reset}
@@ -68,6 +71,8 @@ ${c.bold}Examples${c.reset}
   tripwire snooze add 1h --rule cred.aws-credentials-read --ancestry abc123
   tripwire allowlist add cred.aws-credentials-read --process /usr/bin/aws
   tripwire ioc node-ipc
+  tripwire test-event aws                # fire a synthetic ~/.aws/credentials read
+  tripwire test-event --path ~/.ssh/id_rsa --kind read
 
 ${c.bold}Environment${c.reset}
   TRIPWIRE_URL    daemon HTTP base, defaults to http://127.0.0.1:7878

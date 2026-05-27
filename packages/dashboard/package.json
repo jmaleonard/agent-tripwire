@@ -19,6 +19,7 @@
     "@hono/node-server": "^1.13.0",
     "@tripwire/shared": "workspace:*",
     "@tripwire/store": "workspace:*",
+    "@tripwire/watcher": "workspace:*",
     "hono": "^4.6.0"
   },
   "devDependencies": {

@@ -17,7 +17,8 @@ import {
   SnoozeRepository,
   type DbHandle,
 } from '@tripwire/store';
-import { type FsWatcher } from '@tripwire/watcher';
+import { type FsEvent, type FsWatcher } from '@tripwire/watcher';
+import type { TripwireEvent } from '@tripwire/shared';
 import { defaultWatchPaths } from './default-paths.js';
 import { DEFAULT_RULES } from './default-rules.js';
 import { handleFsEvent, type PipelineDeps } from './pipeline.js';
@@ -67,7 +68,7 @@ export class Daemon {
   private dashboard: RunningDashboard | undefined;
   private watcherOff: (() => void) | undefined;
   private watcherErrOff: (() => void) | undefined;
-  private inflight = new Set<Promise<void>>();
+  private inflight = new Set<Promise<unknown>>();
   private started = false;
 
   constructor(opts: DaemonOptions) {
@@ -107,6 +108,9 @@ export class Daemon {
           allowlist: this.allowlist,
           iocs: this.iocs,
           ...(this.opts.now !== undefined ? { now: this.opts.now } : {}),
+          // Plumb the test-event hook so POST /api/test-event runs through
+          // the full pipeline (identify → engine → store → notify).
+          onTestEvent: fsEvent => this.testEvent(fsEvent),
         },
         {
           port: this.opts.dashboardPort ?? 7878,
@@ -138,7 +142,27 @@ export class Daemon {
     );
   }
 
-  private async runPipeline(fsEvent: import('@tripwire/watcher').FsEvent): Promise<void> {
+  /**
+   * Public test hook: run a synthetic FsEvent through the daemon's full
+   * pipeline. Returns the TripwireEvents that fired so the caller (CLI,
+   * dashboard endpoint) can show the result. The same inflight tracking
+   * applies, so waitIdle() / stop() block on test events too.
+   */
+  async testEvent(fsEvent: FsEvent): Promise<TripwireEvent[]> {
+    let result: TripwireEvent[] = [];
+    const task = this.runPipeline(fsEvent).then(events => {
+      result = events;
+    });
+    this.inflight.add(task);
+    try {
+      await task;
+    } finally {
+      this.inflight.delete(task);
+    }
+    return result;
+  }
+
+  private async runPipeline(fsEvent: FsEvent): Promise<TripwireEvent[]> {
     const deps: PipelineDeps = {
       engine: this.engine,
       events: this.events,
@@ -152,9 +176,10 @@ export class Daemon {
       ...(this.opts.home !== undefined ? { home: this.opts.home } : {}),
     };
     try {
-      await handleFsEvent(deps, fsEvent);
+      return await handleFsEvent(deps, fsEvent);
     } catch (err) {
       this.logger.error({ err, fsEvent }, 'pipeline failed');
+      return [];
     }
   }
 

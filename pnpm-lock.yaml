@@ -85,6 +85,9 @@ importers:
       '@tripwire/store':
         specifier: workspace:*
         version: link:../store
+      '@tripwire/watcher':
+        specifier: workspace:*
+        version: link:../watcher
       hono:
         specifier: ^4.6.0
         version: 4.12.23

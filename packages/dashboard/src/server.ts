@@ -6,6 +6,7 @@ import { eventsRoutes } from './routes/events.js';
 import { iocsRoutes } from './routes/iocs.js';
 import { snoozesRoutes } from './routes/snoozes.js';
 import { summaryRoutes } from './routes/summary.js';
+import { testEventRoutes } from './routes/test-event.js';
 import { uiRoutes } from './routes/ui.js';
 
 /**
@@ -20,6 +21,7 @@ export function createDashboard(deps: DashboardDeps): Hono {
   app.route('/api/snoozes', snoozesRoutes(deps));
   app.route('/api/allowlist', allowlistRoutes(deps));
   app.route('/api/iocs', iocsRoutes(deps));
+  app.route('/api/test-event', testEventRoutes(deps));
   return app;
 }
 
