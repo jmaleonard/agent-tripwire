@@ -10,7 +10,9 @@ Library packages landed: `@tripwire/shared`, `@tripwire/store`, `@tripwire/feeds
 
 The full pipeline runs end-to-end on real macOS process trees: identity walker → engine → notifier → real macOS notification banner. A synthetic credential-read from a Claude-Code-subprocess ancestry produces a correctly classified, attributed, severity-tagged event surfaced via Notification Center.
 
-Next: snooze CLI, daemon glue (long-running process wiring watcher → identify → engine → store → notifier), dashboard.
+A native macOS menu-bar app ships in [`apps/menubar-macos/`](./apps/menubar-macos/) — Swift, ~200 LOC, < 1 MB `.app` bundle, polls the daemon's HTTP API on `localhost:7878`. Shows severity-aware SF Symbols (`shield`, `shield.fill`, `exclamationmark.triangle.fill`, `moon.zzz`, `shield.slash`), a counts summary for the last 24h, active snooze status with one-click clear, and the last 5 events click-through to the dashboard.
+
+Next: snooze CLI, daemon glue (long-running process wiring watcher → identify → engine → store → notifier), dashboard HTTP server (the `/api/summary` endpoint the menu-bar app consumes).
 
 The full specification lives in [`spec/`](./spec/):
 
