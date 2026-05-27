@@ -123,6 +123,26 @@ describe('EventRepository', () => {
     expect(repo.getById(event.event_id)?.package).toEqual(event.package);
   });
 
+  it('countBySeverity returns every bucket including zeros', () => {
+    repo.insert(makeEvent({ event_id: 'a', severity: 'critical' }));
+    repo.insert(makeEvent({ event_id: 'b', severity: 'critical' }));
+    repo.insert(makeEvent({ event_id: 'c', severity: 'high' }));
+    expect(repo.countBySeverity()).toEqual({
+      critical: 2,
+      high: 1,
+      medium: 0,
+      low: 0,
+      info: 0,
+    });
+  });
+
+  it('countBySeverity respects `since`', () => {
+    repo.insert(makeEvent({ event_id: 'old', timestamp: '2026-05-16T00:00:00.000Z', severity: 'high' }));
+    repo.insert(makeEvent({ event_id: 'new', timestamp: '2026-05-26T12:00:00.000Z', severity: 'high' }));
+    const counts = repo.countBySeverity({ since: '2026-05-25T00:00:00.000Z' });
+    expect(counts.high).toBe(1);
+  });
+
   it('respects limit and offset on list', () => {
     for (let i = 0; i < 5; i++) {
       const ts = `2026-05-17T12:0${i}:00.000Z`;

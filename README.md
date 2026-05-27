@@ -6,13 +6,13 @@ A runtime detection daemon for developer workstations. Watches your sensitive pa
 
 **Phase 0 deployed.** The IoC seeder is live: a daily 06:00 UTC Lambda fetches Aikido's npm + PyPI malware lists, merges them, and publishes `latest.json` (~28 MB, ~130K IoCs) to S3. See [`infrastructure/`](./infrastructure/) for the CloudFormation template and deploy script.
 
-Library packages landed: `@tripwire/shared`, `@tripwire/store`, `@tripwire/feeds`, `@tripwire/lambda-seeder` (deployed), `@tripwire/watcher` (interface + mock), `@tripwire/identity` (Linux + macOS readers + classifier), `@tripwire/engine` (rule loader + path predicates + allowlist + snooze + IoC enrichment), `@tripwire/notifier` (past-tense formatter + macOS terminal-notifier/osascript + Linux notify-send + platform factory).
+Library packages: `@tripwire/shared`, `@tripwire/store`, `@tripwire/feeds`, `@tripwire/lambda-seeder` (deployed), `@tripwire/watcher` (interface + mock), `@tripwire/identity` (Linux + macOS readers + classifier), `@tripwire/engine` (rule loader + path predicates + allowlist + snooze + IoC enrichment), `@tripwire/notifier` (past-tense formatter + macOS terminal-notifier/osascript + Linux notify-send + platform factory), `@tripwire/dashboard` (Hono HTTP server on `localhost:7878`).
 
-The full pipeline runs end-to-end on real macOS process trees: identity walker → engine → notifier → real macOS notification banner. A synthetic credential-read from a Claude-Code-subprocess ancestry produces a correctly classified, attributed, severity-tagged event surfaced via Notification Center.
+A native macOS menu-bar app ships in [`apps/menubar-macos/`](./apps/menubar-macos/) — Swift, ~200 LOC, < 1 MB `.app` bundle. Polls the dashboard server and shows severity-aware SF Symbols, last-24h counts, active snooze status with one-click clear, and the last 5 events click-through to the dashboard.
 
-A native macOS menu-bar app ships in [`apps/menubar-macos/`](./apps/menubar-macos/) — Swift, ~200 LOC, < 1 MB `.app` bundle, polls the daemon's HTTP API on `localhost:7878`. Shows severity-aware SF Symbols (`shield`, `shield.fill`, `exclamationmark.triangle.fill`, `moon.zzz`, `shield.slash`), a counts summary for the last 24h, active snooze status with one-click clear, and the last 5 events click-through to the dashboard.
+End-to-end live verified: seeded dashboard with 3 demo events + a 1h snooze → menubar app picked it up within one poll cycle, icon flipped from `shield.slash` → `exclamationmark.triangle.fill` → `moon.zzz`. Try it with `node scripts/dashboard-demo.mjs` (and `open "apps/menubar-macos/dist/Tripwire Menubar.app"` if you've built it).
 
-Next: snooze CLI, daemon glue (long-running process wiring watcher → identify → engine → store → notifier), dashboard HTTP server (the `/api/summary` endpoint the menu-bar app consumes).
+Next: snooze CLI, daemon glue (long-running process wiring watcher → identify → engine → store → notifier in a loop), Preact UI on top of the dashboard's HTML shell.
 
 The full specification lives in [`spec/`](./spec/):
 

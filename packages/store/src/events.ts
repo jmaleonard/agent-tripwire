@@ -140,6 +140,33 @@ export class EventRepository {
       .run(id);
     return result.changes > 0;
   }
+
+  /**
+   * Count events grouped by severity, optionally filtered by `since`.
+   * Returns every severity bucket (zero when no rows of that severity).
+   */
+  countBySeverity(opts: { since?: string } = {}): Record<Severity, number> {
+    const out: Record<Severity, number> = {
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      info: 0,
+    };
+    const stmt = opts.since
+      ? this.db.prepare('SELECT severity, COUNT(*) AS c FROM events WHERE timestamp >= ? GROUP BY severity')
+      : this.db.prepare('SELECT severity, COUNT(*) AS c FROM events GROUP BY severity');
+    const rows = (opts.since ? stmt.all(opts.since) : stmt.all()) as Array<{
+      severity: string;
+      c: number;
+    }>;
+    for (const row of rows) {
+      if (row.severity in out) {
+        out[row.severity as Severity] = row.c;
+      }
+    }
+    return out;
+  }
 }
 
 function rowToEvent(row: EventRow): TripwireEvent {
