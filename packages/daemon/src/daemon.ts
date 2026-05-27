@@ -22,11 +22,12 @@ import type { TripwireEvent } from '@tripwire/shared';
 import { defaultWatchPaths } from './default-paths.js';
 import { DEFAULT_RULES } from './default-rules.js';
 import { handleFsEvent, type PipelineDeps } from './pipeline.js';
-import { createPlatformReader } from './platform.js';
+import { createPlatformReader, createPlatformWatcher } from './platform.js';
 
 export interface DaemonOptions {
   dbPath?: string;
-  watcher: FsWatcher;
+  /** Watcher to use. Defaults to createPlatformWatcher() (NativeFsWatcher if the helper is on disk, MockFsWatcher otherwise). */
+  watcher?: FsWatcher;
   processReader?: ProcessReader;
   rules?: ReadonlyArray<Rule>;
   notifier?: Notifier;
@@ -66,6 +67,7 @@ export class Daemon {
   allowlist!: AllowlistRepository;
   iocs!: IoCRepository;
   private dashboard: RunningDashboard | undefined;
+  private activeWatcher: FsWatcher | undefined;
   private watcherOff: (() => void) | undefined;
   private watcherErrOff: (() => void) | undefined;
   private inflight = new Set<Promise<unknown>>();
@@ -119,7 +121,8 @@ export class Daemon {
       );
     }
 
-    const watcher = this.opts.watcher;
+    const watcher = this.opts.watcher ?? createPlatformWatcher(this.logger);
+    this.activeWatcher = watcher;
     this.watcherOff = watcher.onEvent(fsEvent => {
       const task = this.runPipeline(fsEvent);
       this.inflight.add(task);
@@ -195,7 +198,7 @@ export class Daemon {
     this.watcherOff?.();
     this.watcherErrOff?.();
     await this.waitIdle();
-    await this.opts.watcher.stop();
+    if (this.activeWatcher) await this.activeWatcher.stop();
     if (this.dashboard) await this.dashboard.close();
     closeDb(this.db);
     this.started = false;

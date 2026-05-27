@@ -9,6 +9,7 @@ class Tripwire < Formula
 
   depends_on "node@22"
   depends_on "pnpm"
+  depends_on "rust" => :build
 
   def install
     ENV["PNPM_HOME"] = buildpath/".pnpm"
@@ -16,6 +17,12 @@ class Tripwire < Formula
 
     system "pnpm", "install", "--frozen-lockfile"
     system "pnpm", "build"
+
+    # Build the native filesystem watcher (Rust). The daemon discovers it via
+    # createPlatformWatcher() and falls back to MockFsWatcher if not present.
+    cd "helpers/tripwire-watcher" do
+      system "cargo", "build", "--release"
+    end
 
     # Build the Swift menubar app. `--disable-sandbox` in the build.sh stops
     # SwiftPM from applying its own sandbox-exec, which collides with Homebrew's
@@ -36,6 +43,12 @@ class Tripwire < Formula
     end
 
     libexec.install Dir["*"]
+
+    # Symlink the watcher helper into libexec/bin so createPlatformWatcher()
+    # finds it on its standard lookup path.
+    helper = libexec/"helpers/tripwire-watcher/target/release/tripwire-watcher"
+    (libexec/"bin").mkpath
+    ln_sf helper, libexec/"bin/tripwire-watcher" if File.exist?(helper)
 
     (bin/"tripwire").write <<~SH
       #!/bin/bash

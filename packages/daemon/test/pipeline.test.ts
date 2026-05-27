@@ -147,10 +147,21 @@ describe('handleFsEvent', () => {
     expect(events.list()).toEqual([]);
   });
 
-  it('pid=null events are dropped silently', async () => {
+  it('pid=null events flow through with a synthetic "unknown" identity', async () => {
     const out = await handleFsEvent(deps, makeFsEvent({ pid: null }));
-    expect(out).toEqual([]);
-    expect(events.list()).toEqual([]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.identity.category).toBe('unknown');
+    expect(out[0]!.identity.pid).toBe(-1);
+    expect(out[0]!.identity.process_path).toBe('<unknown>');
+    // Hash is path-derived so the same path snoozes coherently.
+    expect(out[0]!.identity.ancestry_summary_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(events.list()).toHaveLength(1);
+  });
+
+  it('two pid=null events for the same path get the same identity hash (stable per-path snooze)', async () => {
+    const a = await handleFsEvent(deps, makeFsEvent({ pid: null }));
+    const b = await handleFsEvent(deps, makeFsEvent({ pid: null }));
+    expect(a[0]!.identity.ancestry_summary_hash).toBe(b[0]!.identity.ancestry_summary_hash);
   });
 
   it('process gone before identify: dropped, no crash', async () => {

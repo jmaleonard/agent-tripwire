@@ -13,3 +13,7 @@ coverage/
 .build/
 .swiftpm/
 DerivedData/
+
+# Rust (helpers/tripwire-watcher/)
+target/
+# Cargo.lock IS committed for binary crates (reproducible builds).

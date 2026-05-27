@@ -1,7 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { Daemon } from '@tripwire/daemon';
-import { MockFsWatcher } from '@tripwire/watcher';
 import { ApiClient } from '../api.js';
 import { cliPaths } from '../config.js';
 import { c } from '../format.js';
@@ -28,11 +27,9 @@ async function runDaemon(args: string[]): Promise<number> {
   const portFlag = args.indexOf('--port');
   const port = portFlag !== -1 && args[portFlag + 1] ? Number(args[portFlag + 1]) : 7878;
 
-  // v1: no real fanotify/fsevents bindings yet. MockFsWatcher accepts events
-  // only via .emit() (test-event command, future Rust helper, etc.).
-  const watcher = new MockFsWatcher();
+  // Watcher is created by Daemon via createPlatformWatcher() — picks up the
+  // Rust tripwire-watcher helper when present, falls back to MockFsWatcher.
   const daemon = await Daemon.start({
-    watcher,
     dbPath,
     dashboardPort: port,
   });

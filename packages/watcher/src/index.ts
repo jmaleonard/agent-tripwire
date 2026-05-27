@@ -6,3 +6,4 @@ export type {
   FsWatcher,
 } from './types.js';
 export { MockFsWatcher } from './mock.js';
+export { NativeFsWatcher, type NativeFsWatcherOptions } from './native.js';
