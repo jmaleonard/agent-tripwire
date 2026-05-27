@@ -25,7 +25,7 @@ class Tripwire < Formula
 
     (bin/"tripwire").write <<~SH
       #!/bin/bash
-      exec "#{Formula["node@22"].opt_bin}/node" "#{libexec}/packages/cli/dist/cli.js" "$@"
+      exec "#{Formula["node@22"].opt_bin}/node" "#{libexec}/packages/cli/dist/main.js" "$@"
     SH
     chmod 0755, bin/"tripwire"
   end
