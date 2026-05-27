@@ -12,8 +12,10 @@ APP_NAME="Tripwire Menubar"
 APP_DIR="dist/${APP_NAME}.app"
 CONTENTS="${APP_DIR}/Contents"
 
+# --disable-sandbox lets the build succeed inside other sandboxes
+# (notably Homebrew's, where sandbox-exec from SwiftPM is denied).
 echo ">>> swift build -c ${CONFIG}"
-swift build -c "$CONFIG"
+swift build -c "$CONFIG" --disable-sandbox
 
 BIN=".build/${CONFIG}/TripwireMenubar"
 if [ ! -f "$BIN" ]; then
