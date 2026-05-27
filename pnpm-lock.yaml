@@ -18,6 +18,31 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.19.19)
 
+  packages/cli:
+    dependencies:
+      '@tripwire/daemon':
+        specifier: workspace:*
+        version: link:../daemon
+      '@tripwire/feeds':
+        specifier: workspace:*
+        version: link:../feeds
+      '@tripwire/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@tripwire/store':
+        specifier: workspace:*
+        version: link:../store
+      '@tripwire/watcher':
+        specifier: workspace:*
+        version: link:../watcher
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+
   packages/daemon:
     dependencies:
       '@tripwire/dashboard':
