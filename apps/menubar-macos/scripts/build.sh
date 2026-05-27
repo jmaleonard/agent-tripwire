@@ -33,6 +33,14 @@ chmod +x "${CONTENTS}/MacOS/TripwireMenubar"
 # A locally-built app isn't quarantined by default, but be safe.
 xattr -dr com.apple.quarantine "$APP_DIR" 2>/dev/null || true
 
+# Ad-hoc codesign so macOS will issue notification permission to the bundle.
+# Without a signature, UNUserNotificationCenter rejects requestAuthorization
+# on an unsigned binary. The `-` sign identity is ad-hoc (no Developer ID
+# needed) but gives the bundle a verifiable signature so LaunchServices
+# treats it as a real app.
+echo ">>> ad-hoc codesigning"
+codesign --force --deep --sign - "$APP_DIR" 2>&1 | tail -2 || true
+
 echo ">>> Built: $APP_DIR"
 echo "    Run:   open \"$APP_DIR\""
 echo "    Stop:  pkill -f TripwireMenubar"

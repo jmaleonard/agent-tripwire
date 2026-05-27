@@ -56,6 +56,40 @@ describe('MacosNotifier', () => {
     expect(cmds).toEqual(['terminal-notifier', 'osascript']);
   });
 
+  it('prefers the Tripwire native notifier when configured', async () => {
+    const exec = vi.fn(async () => ({ stdout: '' }));
+    const n = new MacosNotifier({
+      exec,
+      tripwireNotifierPath: '/path/to/TripwireMenubar',
+    });
+    expect(await n.notify(makeEvent(), { dashboardUrl: 'http://localhost:7878' })).toBe(true);
+    expect(exec).toHaveBeenCalledOnce();
+    const [cmd, args] = exec.mock.calls[0]!;
+    expect(cmd).toBe('/path/to/TripwireMenubar');
+    expect(args).toContain('--notify');
+    expect(args).toContain('--title');
+    expect(args).toContain('--body');
+    expect(args).toContain('--severity');
+    expect(args).toContain('--id');
+    expect(args).toContain('--url');
+    expect((args as string[]).includes('http://localhost:7878/events/evt-1')).toBe(true);
+  });
+
+  it('falls back from Tripwire notifier → terminal-notifier → osascript', async () => {
+    const exec = vi.fn(async (cmd: string) => {
+      if (cmd === '/bad/TripwireMenubar') throw new Error('crashed');
+      if (cmd === 'terminal-notifier') throw new Error('not installed');
+      return { stdout: '' };
+    });
+    const n = new MacosNotifier({
+      exec,
+      tripwireNotifierPath: '/bad/TripwireMenubar',
+    });
+    expect(await n.notify(makeEvent())).toBe(true);
+    const cmds = exec.mock.calls.map(c => c[0]);
+    expect(cmds).toEqual(['/bad/TripwireMenubar', 'terminal-notifier', 'osascript']);
+  });
+
   it('returns false when osascript also fails', async () => {
     const exec = vi.fn(async () => {
       throw new Error('boom');

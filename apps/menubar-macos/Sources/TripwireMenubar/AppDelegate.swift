@@ -1,7 +1,8 @@
 import AppKit
 import Foundation
+import UserNotifications
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     private var statusItem: NSStatusItem!
     private var pollTimer: Timer?
     private let client = DaemonClient(baseURL: URL(string: "http://localhost:7878")!)
@@ -13,8 +14,49 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = symbol(name: "shield", description: "Tripwire")
             button.imagePosition = .imageOnly
         }
+        // Own the notification center so clicks on the daemon's --notify
+        // banners route here and we can openURL from userInfo.
+        UNUserNotificationCenter.current().delegate = self
+        // Request notification authorization now while we have a UI context.
+        // Bundle-level grant is then shared by --notify subprocess invocations,
+        // which can't prompt the user themselves (no LSUI context).
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
+            // Ignored — user denial just means no native banners; the
+            // dashboard still logs everything.
+        }
         rebuildMenu()
         startPolling()
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    /// Show banners even when the app is "in foreground" (LSUIElement still
+    /// counts as foreground for the notification center).
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        if #available(macOS 11.0, *) {
+            completionHandler([.banner, .sound])
+        } else {
+            completionHandler([.alert, .sound])
+        }
+    }
+
+    /// User clicked the banner. If the --notify call stashed an openURL in
+    /// userInfo, open it in the browser.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        defer { completionHandler() }
+        let userInfo = response.notification.request.content.userInfo
+        guard let urlString = userInfo["openURL"] as? String,
+              let url = URL(string: urlString)
+        else { return }
+        NSWorkspace.shared.open(url)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
