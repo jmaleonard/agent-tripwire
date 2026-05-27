@@ -10,9 +10,9 @@ Library packages: `@tripwire/shared`, `@tripwire/store`, `@tripwire/feeds`, `@tr
 
 A native macOS menu-bar app ships in [`apps/menubar-macos/`](./apps/menubar-macos/) — Swift, ~200 LOC, < 1 MB `.app` bundle. Polls the dashboard server and shows severity-aware SF Symbols, last-24h counts, active snooze status with one-click clear, and the last 5 events click-through to the dashboard.
 
-End-to-end live verified: seeded dashboard with 3 demo events + a 1h snooze → menubar app picked it up within one poll cycle, icon flipped from `shield.slash` → `exclamationmark.triangle.fill` → `moon.zzz`. Try it with `node scripts/dashboard-demo.mjs` (and `open "apps/menubar-macos/dist/Tripwire Menubar.app"` if you've built it).
+**The full daemon is alive.** `@tripwire/daemon` ties everything into a single long-running process: watcher → identify → engine → store → notifier + dashboard server. `node scripts/daemon-demo.mjs` spins it up with a synthetic event and you'll see (a) a real macOS notification banner, (b) `localhost:7878/api/summary` reflecting the event, and (c) the menubar icon flipping within one poll cycle.
 
-Next: snooze CLI, daemon glue (long-running process wiring watcher → identify → engine → store → notifier in a loop), Preact UI on top of the dashboard's HTML shell.
+Next: snooze CLI surface, the `tripwire` user CLI (setup / doctor / status), and the deferred Rust fanotify helper that replaces `MockFsWatcher` with real kernel events.
 
 The full specification lives in [`spec/`](./spec/):
 
