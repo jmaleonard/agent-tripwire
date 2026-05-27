@@ -14,6 +14,10 @@ class Tripwire < Formula
     ENV["PNPM_HOME"] = buildpath/".pnpm"
     ENV.prepend_path "PATH", ENV["PNPM_HOME"]
 
+    # Only build the Node packages here — SwiftPM doesn't run cleanly inside
+    # Homebrew's build sandbox (`sandbox-exec: Operation not permitted` when
+    # the SwiftPM manifest tries to apply its own sandbox). Users build the
+    # menubar app separately — see caveats.
     system "pnpm", "install", "--frozen-lockfile"
     system "pnpm", "build"
 
@@ -24,17 +28,6 @@ class Tripwire < Formula
       exec "#{Formula["node@22"].opt_bin}/node" "#{libexec}/packages/cli/dist/cli.js" "$@"
     SH
     chmod 0755, bin/"tripwire"
-
-    # Swift menubar app: build it if Swift is available, place it under
-    # the formula's prefix. Users drag it into ~/Applications/ themselves.
-    if which("swift")
-      cd libexec/"apps/menubar-macos" do
-        system "./scripts/build.sh"
-      end
-      prefix.install libexec/"apps/menubar-macos/dist/Tripwire Menubar.app"
-    else
-      opoo "Swift not found; skipping the menubar app build. Install Xcode Command Line Tools and re-brew to get it."
-    end
   end
 
   def post_install
@@ -44,7 +37,7 @@ class Tripwire < Formula
   end
 
   def caveats
-    msg = <<~EOS
+    <<~EOS
       First run:
         tripwire setup
 
@@ -54,16 +47,13 @@ class Tripwire < Formula
       Dashboard:
         http://localhost:7878
 
-    EOS
-    if File.exist?("#{prefix}/Tripwire Menubar.app")
-      msg += <<~EOS
-        macOS menu-bar app:
-          open "#{prefix}/Tripwire Menubar.app"
-        Drag it to ~/Applications/ if you want it as a login item.
+      To build the macOS menu-bar app (requires Xcode Command Line Tools):
+        cd #{opt_libexec}/apps/menubar-macos
+        ./scripts/build.sh
+        open "dist/Tripwire Menubar.app"
+      Drag it to ~/Applications/ if you want it as a login item.
 
-      EOS
-    end
-    msg
+    EOS
   end
 
   # `brew services start tripwire` uses this. KeepAlive so the daemon restarts
