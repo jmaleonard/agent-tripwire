@@ -42,6 +42,7 @@ export class MacosNotifier implements Notifier {
     if (!this.useOsascriptOnly) {
       try {
         const args = ['-title', payload.title, '-message', payload.body];
+        if (payload.subtitle) args.push('-subtitle', payload.subtitle);
         if (payload.openUrl) args.push('-open', payload.openUrl);
         await this.exec(this.terminalNotifier, args);
         return true;
@@ -49,17 +50,22 @@ export class MacosNotifier implements Notifier {
         // terminal-notifier not installed or failed; fall through.
       }
     }
-    return this.sendViaOsascript(payload.title, payload.body);
+    return this.sendViaOsascript(payload.title, payload.subtitle, payload.body);
   }
 
-  private async sendViaOsascript(title: string, body: string): Promise<boolean> {
+  private async sendViaOsascript(
+    title: string,
+    subtitle: string | undefined,
+    body: string,
+  ): Promise<boolean> {
     const safeTitle = escapeAppleScript(title);
     const safeBody = escapeAppleScript(body);
+    const safeSubtitle = subtitle ? escapeAppleScript(subtitle) : undefined;
+    const script = safeSubtitle
+      ? `display notification "${safeBody}" with title "${safeTitle}" subtitle "${safeSubtitle}"`
+      : `display notification "${safeBody}" with title "${safeTitle}"`;
     try {
-      await this.exec('osascript', [
-        '-e',
-        `display notification "${safeBody}" with title "${safeTitle}"`,
-      ]);
+      await this.exec('osascript', ['-e', script]);
       return true;
     } catch {
       return false;

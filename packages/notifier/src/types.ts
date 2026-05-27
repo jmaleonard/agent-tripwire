@@ -2,6 +2,8 @@ import type { Severity, TripwireEvent } from '@tripwire/shared';
 
 export interface NotificationPayload {
   title: string;
+  /** Second-line text, shown smaller on macOS (terminal-notifier `-subtitle`). */
+  subtitle?: string;
   body: string;
   /** URL the notification opens when clicked (where supported). */
   openUrl?: string;

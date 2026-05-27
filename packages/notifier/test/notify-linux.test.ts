@@ -39,7 +39,8 @@ describe('LinuxNotifier', () => {
     expect(args).toContain('--app-name=tripwire');
     expect(args).toContain('--urgency=normal');
     expect(args).toContain('--icon=dialog-warning');
-    expect((args as string[]).some(a => a.startsWith('tripwire:'))).toBe(true);
+    // Title is the rule name (no "tripwire:" jargon prefix), with a ⚠️ for high.
+    expect((args as string[]).some(a => /AWS credentials file read/.test(a))).toBe(true);
   });
 
   it('maps severity → urgency correctly', async () => {

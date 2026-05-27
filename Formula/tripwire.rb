@@ -10,6 +10,9 @@ class Tripwire < Formula
   depends_on "node@22"
   depends_on "pnpm"
   depends_on "rust" => :build
+  # terminal-notifier gives macOS notifications a clean source-app identity
+  # (instead of "Script Editor" from the osascript fallback).
+  depends_on "terminal-notifier"
 
   def install
     ENV["PNPM_HOME"] = buildpath/".pnpm"

@@ -31,7 +31,8 @@ describe('MockNotifier', () => {
     const n = new MockNotifier();
     expect(await n.notify(makeEvent())).toBe(true);
     expect(n.sent).toHaveLength(1);
-    expect(n.sent[0]!.payload.title).toContain('HIGH');
+    // High-severity events get the ⚠️ prefix in the new formatter.
+    expect(n.sent[0]!.payload.title).toMatch(/^⚠️ /);
   });
 
   it('drops snoozed events and records the reason', async () => {
