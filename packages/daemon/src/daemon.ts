@@ -12,6 +12,7 @@ import {
   AllowlistRepository,
   closeDb,
   EventRepository,
+  FeedStateRepository,
   IoCRepository,
   openDb,
   SnoozeRepository,
@@ -21,8 +22,23 @@ import { type FsEvent, type FsWatcher } from '@tripwire/watcher';
 import type { TripwireEvent } from '@tripwire/shared';
 import { defaultWatchPaths } from './default-paths.js';
 import { DEFAULT_RULES } from './default-rules.js';
+import { IoCSyncService, type SyncResult } from './ioc-sync.js';
 import { handleFsEvent, type PipelineDeps } from './pipeline.js';
 import { createPlatformReader, createPlatformWatcher } from './platform.js';
+
+/** How often the daemon re-syncs the IoC feed once running. */
+const DEFAULT_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+
+export interface IoCSyncConfig {
+  /** Enable periodic IoC feed sync. Default false (tests/offline). */
+  enabled?: boolean;
+  /** Manifest URL override. Defaults to the public tripwire-feed repo. */
+  manifestUrl?: string;
+  /** Re-sync interval in ms. Default 6h. Set 0 to disable the timer (sync once on start). */
+  intervalMs?: number;
+  /** Injectable fetch (tests). */
+  fetch?: typeof fetch;
+}
 
 export interface DaemonOptions {
   dbPath?: string;
@@ -37,6 +53,8 @@ export interface DaemonOptions {
   /** Path overrides for the watcher; defaults from spec §6.13. */
   readPaths?: ReadonlyArray<string>;
   writePaths?: ReadonlyArray<string>;
+  /** IoC feed sync config. Disabled by default; the CLI `daemon run` enables it. */
+  iocSync?: IoCSyncConfig;
   /** Start the dashboard HTTP server? Default true. */
   startDashboardServer?: boolean;
   dashboardPort?: number;
@@ -66,6 +84,9 @@ export class Daemon {
   snoozes!: SnoozeRepository;
   allowlist!: AllowlistRepository;
   iocs!: IoCRepository;
+  feedState!: FeedStateRepository;
+  private iocSync: IoCSyncService | undefined;
+  private syncTimer: ReturnType<typeof setInterval> | undefined;
   private dashboard: RunningDashboard | undefined;
   private activeWatcher: FsWatcher | undefined;
   private watcherOff: (() => void) | undefined;
@@ -91,6 +112,20 @@ export class Daemon {
     this.snoozes = new SnoozeRepository(this.db);
     this.allowlist = new AllowlistRepository(this.db);
     this.iocs = new IoCRepository(this.db);
+    this.feedState = new FeedStateRepository(this.db);
+
+    if (this.opts.iocSync?.enabled) {
+      this.iocSync = new IoCSyncService({
+        iocs: this.iocs,
+        feedState: this.feedState,
+        logger: this.logger,
+        ...(this.opts.iocSync.manifestUrl !== undefined
+          ? { manifestUrl: this.opts.iocSync.manifestUrl }
+          : {}),
+        ...(this.opts.iocSync.fetch !== undefined ? { fetch: this.opts.iocSync.fetch } : {}),
+        ...(this.opts.now !== undefined ? { now: this.opts.now } : {}),
+      });
+    }
 
     this.engine = new Engine({
       rules: this.opts.rules ?? DEFAULT_RULES,
@@ -109,10 +144,13 @@ export class Daemon {
           snoozes: this.snoozes,
           allowlist: this.allowlist,
           iocs: this.iocs,
+          feedState: this.feedState,
           ...(this.opts.now !== undefined ? { now: this.opts.now } : {}),
           // Plumb the test-event hook so POST /api/test-event runs through
           // the full pipeline (identify → engine → store → notify).
           onTestEvent: fsEvent => this.testEvent(fsEvent),
+          // POST /api/iocs/sync triggers a feed pull (503 when sync disabled).
+          ...(this.iocSync !== undefined ? { onSyncIocs: () => this.syncIocs() } : {}),
         },
         {
           port: this.opts.dashboardPort ?? 7878,
@@ -143,6 +181,34 @@ export class Daemon {
       { dashboard: this.dashboard !== undefined, port: this.opts.dashboardPort ?? 7878 },
       'tripwired started',
     );
+
+    this.startIocSync();
+  }
+
+  /** Kick an initial IoC feed sync (non-blocking) and schedule periodic refresh. */
+  private startIocSync(): void {
+    if (!this.iocSync) return;
+    const run = (): void => {
+      void this.syncIocs().catch(err =>
+        this.logger.warn({ err }, 'IoC feed sync failed'),
+      );
+    };
+    run();
+    const interval = this.opts.iocSync?.intervalMs ?? DEFAULT_SYNC_INTERVAL_MS;
+    if (interval > 0) {
+      this.syncTimer = setInterval(run, interval);
+      this.syncTimer.unref?.();
+    }
+  }
+
+  /**
+   * Pull the IoC feed into the local store. Exposed for the dashboard
+   * `POST /api/iocs/sync` endpoint and the `tripwire ioc sync` CLI command.
+   * Throws if feed sync is not configured.
+   */
+  async syncIocs(): Promise<SyncResult> {
+    if (!this.iocSync) throw new Error('IoC feed sync is not enabled');
+    return this.iocSync.sync();
   }
 
   /**
@@ -195,6 +261,7 @@ export class Daemon {
 
   async stop(): Promise<void> {
     if (!this.started) return;
+    if (this.syncTimer) clearInterval(this.syncTimer);
     this.watcherOff?.();
     this.watcherErrOff?.();
     await this.waitIdle();

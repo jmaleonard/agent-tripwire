@@ -16,10 +16,10 @@ describe('openDb', () => {
     db.close();
   });
 
-  it('records 001_initial in _migrations', () => {
+  it('records migrations in _migrations', () => {
     const db = openDb({ path: ':memory:' });
     const rows = db.prepare('SELECT name FROM _migrations').all() as Array<{ name: string }>;
-    expect(rows.map(r => r.name)).toEqual(['001_initial']);
+    expect(rows.map(r => r.name)).toEqual(['001_initial', '002_feed_state']);
     db.close();
   });
 
@@ -48,7 +48,7 @@ describe('openDb', () => {
       openDb({ path: dbPath }).close();
       const db2 = openDb({ path: dbPath });
       const rows = db2.prepare('SELECT name FROM _migrations').all() as Array<{ name: string }>;
-      expect(rows.map(r => r.name)).toEqual(['001_initial']);
+      expect(rows.map(r => r.name)).toEqual(['001_initial', '002_feed_state']);
       db2.close();
     });
 

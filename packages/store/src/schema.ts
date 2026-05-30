@@ -66,3 +66,15 @@ CREATE TABLE IF NOT EXISTS iocs (
 
 CREATE INDEX IF NOT EXISTS idx_iocs_lookup ON iocs(ecosystem, package);
 `;
+
+// Migration 002: tracks where the local IoC DB sits relative to the published
+// feed, so the sync service can fetch only the deltas it's missing. Single-row
+// table (id is pinned to 1).
+export const FEED_STATE_SCHEMA = `
+CREATE TABLE IF NOT EXISTS feed_state (
+    id           INTEGER PRIMARY KEY CHECK (id = 1),
+    synced_date  TEXT,
+    etag         TEXT,
+    last_sync_at TEXT
+);
+`;

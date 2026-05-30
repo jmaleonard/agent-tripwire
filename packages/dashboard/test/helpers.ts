@@ -2,6 +2,7 @@ import type { TripwireEvent } from '@tripwire/shared';
 import {
   AllowlistRepository,
   EventRepository,
+  FeedStateRepository,
   IoCRepository,
   openDb,
   SnoozeRepository,
@@ -17,14 +18,23 @@ export interface TestHarness {
   close: () => void;
 }
 
-export function makeHarness(now: Date = new Date('2026-05-26T12:00:00.000Z')): TestHarness {
+export interface HarnessOptions {
+  now?: Date;
+  onSyncIocs?: () => Promise<unknown>;
+}
+
+export function makeHarness(opts: Date | HarnessOptions = {}): TestHarness {
+  const o: HarnessOptions = opts instanceof Date ? { now: opts } : opts;
+  const now = o.now ?? new Date('2026-05-26T12:00:00.000Z');
   const db = openDb({ path: ':memory:' });
   const deps: DashboardDeps = {
     events: new EventRepository(db),
     snoozes: new SnoozeRepository(db),
     allowlist: new AllowlistRepository(db),
     iocs: new IoCRepository(db),
+    feedState: new FeedStateRepository(db),
     now: () => now,
+    ...(o.onSyncIocs ? { onSyncIocs: o.onSyncIocs } : {}),
   };
   return { app: createDashboard(deps), deps, db, close: () => db.close() };
 }

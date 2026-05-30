@@ -133,3 +133,70 @@ export interface IoCEntry {
   first_seen: string;
   last_seen: string;
 }
+
+/**
+ * The full snapshot artifact the seeder publishes (release asset
+ * `latest.json`). Same shape the lambda/CI writes and the client parses.
+ */
+export interface IoCSnapshot {
+  generated_at: string;
+  /** ISO date (YYYY-MM-DD) the snapshot is keyed under. */
+  date: string;
+  entries: IoCEntry[];
+}
+
+/** Identity of an IoC entry, used to express a removal in a delta. */
+export interface IoCRemoval {
+  ecosystem: Ecosystem;
+  package: string;
+  version_spec: string;
+}
+
+/**
+ * The diff between two consecutive snapshots. `added` carries full entries
+ * (new or changed — applied via upsert); `removed` carries just the identity
+ * tuples to delete. Applying a delta to its `base_date` snapshot yields the
+ * `date` snapshot.
+ */
+export interface IoCDelta {
+  feed_version: number;
+  /** Date of the snapshot this delta applies on top of. */
+  base_date: string;
+  /** Date of the snapshot this delta produces. */
+  date: string;
+  generated_at: string;
+  added: IoCEntry[];
+  removed: IoCRemoval[];
+}
+
+/** Pointer to the baseline full snapshot in the manifest. */
+export interface FeedFullRef {
+  date: string;
+  url: string;
+  sha256: string;
+  count: number;
+  bytes: number;
+}
+
+/** Pointer to one delta in the manifest, newest last. */
+export interface FeedDeltaRef {
+  date: string;
+  base_date: string;
+  url: string;
+  sha256: string;
+  added: number;
+  removed: number;
+}
+
+/**
+ * The small index a client fetches first. `full` is the baseline to download
+ * when too far behind; `deltas` is the ordered chain (oldest→newest) of diffs
+ * available on top of `full.date`.
+ */
+export interface FeedManifest {
+  feed_version: number;
+  generated_at: string;
+  latest_date: string;
+  full: FeedFullRef;
+  deltas: FeedDeltaRef[];
+}

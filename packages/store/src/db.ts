@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
-import { INITIAL_SCHEMA } from './schema.js';
+import { FEED_STATE_SCHEMA, INITIAL_SCHEMA } from './schema.js';
 
 export interface OpenDbOptions {
   path: string;
@@ -11,6 +11,7 @@ export type DbHandle = BetterSqlite3Database;
 
 const MIGRATIONS: ReadonlyArray<{ name: string; sql: string }> = [
   { name: '001_initial', sql: INITIAL_SCHEMA },
+  { name: '002_feed_state', sql: FEED_STATE_SCHEMA },
 ];
 
 export function openDb(opts: OpenDbOptions): DbHandle {

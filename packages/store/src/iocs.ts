@@ -1,4 +1,4 @@
-import type { Ecosystem, IoCEntry, IoCSource } from '@tripwire/shared';
+import type { Ecosystem, IoCEntry, IoCRemoval, IoCSource } from '@tripwire/shared';
 import type { DbHandle } from './db.js';
 
 interface IoCRow {
@@ -40,6 +40,35 @@ export class IoCRepository {
           last_seen: e.last_seen,
         });
       }
+    });
+    tx(entries);
+    return { count: entries.length };
+  }
+
+  /** Delete entries by identity tuple. Used when applying a feed delta's `removed`. */
+  remove(removals: ReadonlyArray<IoCRemoval>): { count: number } {
+    const del = this.db.prepare(
+      'DELETE FROM iocs WHERE ecosystem = @ecosystem AND package = @package AND version_spec = @version_spec',
+    );
+    let count = 0;
+    const tx = this.db.transaction((batch: ReadonlyArray<IoCRemoval>) => {
+      for (const r of batch) {
+        count += del.run(r).changes;
+      }
+    });
+    tx(removals);
+    return { count };
+  }
+
+  /**
+   * Replace the entire IoC table with `entries` in one transaction. Used by the
+   * sync service when downloading a full snapshot, so a stale local row that's
+   * no longer in the feed doesn't linger.
+   */
+  replaceAll(entries: ReadonlyArray<IoCEntry>): { count: number } {
+    const tx = this.db.transaction((batch: ReadonlyArray<IoCEntry>) => {
+      this.db.exec('DELETE FROM iocs');
+      this.upsert(batch);
     });
     tx(entries);
     return { count: entries.length };

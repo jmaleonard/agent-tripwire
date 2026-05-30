@@ -59,6 +59,7 @@ ${c.bold}Commands${c.reset}
   ${c.cyan}snooze${c.reset}         list / add / clear snoozes
   ${c.cyan}allowlist${c.reset}      list / add / remove allowlist entries
   ${c.cyan}ioc${c.reset} <package>  look up IoC entries for a package
+  ${c.cyan}ioc${c.reset} sync       pull the latest IoC feed into the local DB
   ${c.cyan}dashboard${c.reset}      open http://localhost:7878 in your browser
   ${c.cyan}doctor${c.reset}         health checks (Node version, daemon reachable, etc.)
   ${c.cyan}test-event${c.reset}     inject a synthetic FsEvent into the running daemon
@@ -71,6 +72,7 @@ ${c.bold}Examples${c.reset}
   tripwire snooze add 1h --rule cred.aws-credentials-read --ancestry abc123
   tripwire allowlist add cred.aws-credentials-read --process /usr/bin/aws
   tripwire ioc node-ipc
+  tripwire ioc sync                      # refresh the local IoC DB from the feed
   tripwire test-event aws                # fire a synthetic ~/.aws/credentials read
   tripwire test-event --path ~/.ssh/id_rsa --kind read
 

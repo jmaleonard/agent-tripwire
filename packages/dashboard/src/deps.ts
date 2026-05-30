@@ -2,6 +2,7 @@ import type { TripwireEvent } from '@tripwire/shared';
 import type {
   AllowlistRepository,
   EventRepository,
+  FeedStateRepository,
   IoCRepository,
   SnoozeRepository,
 } from '@tripwire/store';
@@ -12,6 +13,8 @@ export interface DashboardDeps {
   snoozes: SnoozeRepository;
   allowlist: AllowlistRepository;
   iocs: IoCRepository;
+  /** IoC feed sync bookmark, surfaced at `GET /api/iocs/sync`. Optional. */
+  feedState?: FeedStateRepository;
   /** Override the clock for tests. Defaults to `() => new Date()`. */
   now?: () => Date;
   /**
@@ -22,4 +25,10 @@ export interface DashboardDeps {
    * Wired by the daemon. When undefined, the test-event endpoint replies 503.
    */
   onTestEvent?: (fsEvent: FsEvent) => Promise<TripwireEvent[]>;
+  /**
+   * Hook for `POST /api/iocs/sync`: pulls the published IoC feed into the
+   * local store and returns the sync result. Wired by the daemon. When
+   * undefined, the endpoint replies 503.
+   */
+  onSyncIocs?: () => Promise<unknown>;
 }

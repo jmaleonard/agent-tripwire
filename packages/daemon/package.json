@@ -18,6 +18,7 @@
   "dependencies": {
     "@tripwire/dashboard": "workspace:*",
     "@tripwire/engine": "workspace:*",
+    "@tripwire/feeds": "workspace:*",
     "@tripwire/identity": "workspace:*",
     "@tripwire/notifier": "workspace:*",
     "@tripwire/shared": "workspace:*",

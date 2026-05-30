@@ -51,6 +51,9 @@ importers:
       '@tripwire/engine':
         specifier: workspace:*
         version: link:../engine
+      '@tripwire/feeds':
+        specifier: workspace:*
+        version: link:../feeds
       '@tripwire/identity':
         specifier: workspace:*
         version: link:../identity

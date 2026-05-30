@@ -29,9 +29,15 @@ async function runDaemon(args: string[]): Promise<number> {
 
   // Watcher is created by Daemon via createPlatformWatcher() — picks up the
   // Rust tripwire-watcher helper when present, falls back to MockFsWatcher.
+  // IoC feed sync is enabled here (off by default in tests). TRIPWIRE_FEED_URL
+  // overrides the manifest location, TRIPWIRE_NO_FEED_SYNC disables it.
   const daemon = await Daemon.start({
     dbPath,
     dashboardPort: port,
+    iocSync: {
+      enabled: process.env.TRIPWIRE_NO_FEED_SYNC !== '1',
+      ...(process.env.TRIPWIRE_FEED_URL ? { manifestUrl: process.env.TRIPWIRE_FEED_URL } : {}),
+    },
   });
 
   process.stdout.write(`${c.green}tripwired running${c.reset}\n`);
