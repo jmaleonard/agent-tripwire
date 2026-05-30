@@ -126,9 +126,11 @@ export type SyncPlan =
 
 /**
  * Decide what a client at `syncedDate` must download to reach the manifest's
- * latest. Returns `full` (+ any deltas past the baseline) when the local DB is
- * empty or the unbroken delta chain from `syncedDate` to latest is missing;
- * otherwise just the deltas newer than `syncedDate`.
+ * latest. The deltas form a chain among themselves (each `base_date` is the
+ * previous delta's `date`); `full` is the fallback baseline for a client that
+ * has fallen off the chain or has never synced. So: take just the deltas when
+ * an unbroken chain bridges `syncedDate`→latest, otherwise download `full`
+ * (plus any deltas layered past `full.date`).
  */
 export function planSync(manifest: FeedManifest, syncedDate: string | null): SyncPlan {
   if (syncedDate !== null && syncedDate === manifest.latest_date) {
@@ -139,7 +141,7 @@ export function planSync(manifest: FeedManifest, syncedDate: string | null): Syn
     manifest.deltas.filter(d => d.date > date);
 
   // Can we walk an unbroken chain from syncedDate up to latest using deltas?
-  if (syncedDate !== null && syncedDate >= manifest.full.date) {
+  if (syncedDate !== null) {
     const chain = deltasAfter(syncedDate);
     if (chainIsContiguous(chain, syncedDate, manifest.latest_date)) {
       return chain.length > 0 ? { mode: 'delta', deltas: chain } : { mode: 'up_to_date' };

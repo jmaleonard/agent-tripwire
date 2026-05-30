@@ -15,7 +15,9 @@ The formula builds the Node daemon + CLI, builds the Swift menubar `.app`, regis
 
 ## Status
 
-**Phase 0 deployed.** The IoC seeder is live: a daily 06:00 UTC Lambda fetches Aikido's npm + PyPI malware lists, merges them, and publishes `latest.json` (~28 MB, ~130K IoCs) to S3. See [`infrastructure/`](./infrastructure/) for the CloudFormation template and deploy script.
+**Phase 0 deployed.** A daily 06:00 UTC job fetches Aikido's npm + PyPI malware lists, merges them (~130K IoCs), and publishes them for clients to pull.
+
+The IoC feed is moving from S3 to a free GitHub-hosted distribution: a GitHub Actions workflow ([`.github/workflows/seed-feed.yml`](./.github/workflows/seed-feed.yml)) publishes the full snapshot as a release asset on `jmaleonard/tripwire-feed` and commits daily deltas + a manifest. The daemon pulls it into local SQLite on startup and every 6h (`tripwire ioc sync` to force it), downloading only the deltas it's missing and SHA-256-verifying every body. See [`spec/docs/feed.md`](./spec/docs/feed.md). The original AWS Lambda + S3 seeder in [`infrastructure/`](./infrastructure/) is superseded by the workflow.
 
 Library packages: `@tripwire/shared`, `@tripwire/store`, `@tripwire/feeds`, `@tripwire/lambda-seeder` (deployed), `@tripwire/watcher` (interface + mock), `@tripwire/identity` (Linux + macOS readers + classifier), `@tripwire/engine` (rule loader + path predicates + allowlist + snooze + IoC enrichment), `@tripwire/notifier` (past-tense formatter + macOS terminal-notifier/osascript + Linux notify-send + platform factory), `@tripwire/dashboard` (Hono HTTP server on `localhost:7878`).
 

@@ -1,5 +1,11 @@
 # infrastructure/
 
+> **Deprecated.** The IoC seeder has moved off AWS to a free GitHub-hosted feed
+> — see [`.github/workflows/seed-feed.yml`](../.github/workflows/seed-feed.yml)
+> and [`spec/docs/feed.md`](../spec/docs/feed.md). This Lambda + S3 stack is kept
+> for reference until the GitHub feed is verified live, then torn down (see
+> "Tear down" below). No new work should target it.
+
 CloudFormation IaC for the agent-tripwire IoC seeder Lambda.
 
 ## What this deploys

@@ -13,3 +13,9 @@ export {
   type BuildManifestInput,
   type SyncPlan,
 } from './manifest.js';
+export {
+  planPublish,
+  DEFAULT_KEEP_DELTAS,
+  type PlanPublishInput,
+  type PublishPlan,
+} from './publish.js';
