@@ -29,7 +29,9 @@ const FEED_DIR = process.env.FEED_DIR ?? join(process.cwd(), 'feed-repo');
 const FEED_TAG = process.env.FEED_TAG ?? 'feed';
 const OUT_DIR = process.env.OUT_DIR ?? join(process.cwd(), 'feed-out');
 const KEEP_DELTAS = Number(process.env.KEEP_DELTAS ?? '30');
-const DATE = process.env.PUBLISH_DATE ?? new Date().toISOString().slice(0, 10);
+// `||` not `??`: a workflow_dispatch / schedule with no date input passes an
+// empty string, which must still fall back to today.
+const DATE = process.env.PUBLISH_DATE || new Date().toISOString().slice(0, 10);
 
 const FEED_V1 = join(FEED_DIR, 'feed', 'v1');
 const MANIFEST_PATH = join(FEED_V1, 'manifest.json');
