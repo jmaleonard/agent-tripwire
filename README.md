@@ -1,42 +1,70 @@
-# agent-tripwire
+# tripwire
 
-A runtime detection daemon for developer workstations. Watches your sensitive paths (`~/.ssh`, `~/.aws`, agent configs, browser cookies, etc.), walks the process tree to figure out who touched them, and tells you in past tense. Local-first. No cloud. Detection only — not a blocker. Designed to run **alongside** install-time blockers like Aikido Safe Chain.
+**Tells you when something on your machine reads your secrets — and who did it.**
 
-## Install (macOS, via Homebrew)
+Tripwire is a background daemon for developer laptops. It watches your sensitive
+files (`~/.ssh`, `~/.aws`, `~/.config` agent tokens, browser cookies, …) and the
+moment one is touched, it walks the process tree to figure out *what* touched it
+and tells you — after the fact, in plain language:
 
-```bash
-brew install --HEAD jmaleonard/tap/tripwire   # or: brew install --HEAD --formula ./Formula/tripwire.rb
-tripwire setup
-brew services start tripwire                  # autostart on login
-tripwire status
+```
+⚠️  HIGH — ~/.aws/credentials was read
+    by  node  →  npm:some-build-tool@2.3.1   (flagged malicious)
+    2s ago · via npm postinstall, no human in the parent chain
 ```
 
-The formula builds the Node daemon + CLI, builds the Swift menubar `.app`, registers the daemon with launchd via `brew services`, and places the menubar app under the brew prefix. Drag it into `~/Applications/` if you want it as a login item.
+That's the whole point: a malicious npm/PyPI package or a coding agent gone
+rogue reads your credentials silently. Tripwire makes it *loud*.
+
+- **Detection, not blocking.** It won't stop the read — it catches what slips
+  past install-time blockers like Aikido Safe Chain. Run it alongside them.
+- **Local-first. No cloud.** Everything stays on your machine. The only network
+  call is pulling the public malware-package list.
+- **Knows malicious packages.** Every event is enriched against a daily feed of
+  ~130K known-bad npm + PyPI packages, so "who read this" comes with "and it's
+  on the malware list."
+
+## Install (macOS)
+
+```bash
+brew install --HEAD jmaleonard/tap/tripwire
+tripwire setup                  # creates ~/.tripwire, applies a quiet period
+brew services start tripwire    # run on login
+tripwire status                 # check it's alive
+```
+
+## Use it
+
+```bash
+tripwire status                 # recent events + counts + snooze state
+tripwire snooze add 1h          # going to do noisy stuff — hush for an hour
+tripwire allowlist add <rule> --process /usr/bin/aws   # bless a known-good actor
+tripwire ioc <package>          # is this package on the malware list?
+tripwire dashboard              # open the web UI on localhost:7878
+```
+
+A native macOS **menu-bar app** ships too: severity-aware icon, last-24h count,
+one-click snooze, and the last 5 events.
+
+## How it works
+
+```
+fs watcher → identify (walk process tree) → rules engine (+ malware feed) → notify + dashboard + SQLite
+```
+
+A native Rust helper delivers kernel filesystem events; the daemon correlates
+them to a PID, runs them through your rules, enriches with the malware feed, and
+surfaces anything that matters. Rules are YAML and yours to edit
+([rule guide](./spec/docs/rules.md)).
 
 ## Status
 
-**Phase 0 deployed.** A daily 06:00 UTC job fetches Aikido's npm + PyPI malware lists, merges them (~130K IoCs), and publishes them for clients to pull.
+Daemon, CLI, menu-bar app, and the malware feed are all working. The feed is
+published daily and free to host — see [`spec/docs/feed.md`](./spec/docs/feed.md).
+macOS is the supported platform today; Linux (fanotify) is in progress.
 
-The IoC feed is moving from S3 to a free GitHub-hosted distribution. The public [`jmaleonard/tripwire-feed`](https://github.com/jmaleonard/tripwire-feed) repo self-publishes via a daily GitHub Actions job (built-in `GITHUB_TOKEN`, no secrets): the full snapshot ships as a release asset, daily deltas + a manifest are committed. The publisher is bundled from `scripts/publish-feed.mjs` + `@tripwire/feeds` here. The daemon pulls it into local SQLite on startup and every 6h (`tripwire ioc sync` to force it), downloading only the deltas it's missing and SHA-256-verifying every body. See [`spec/docs/feed.md`](./spec/docs/feed.md). The original AWS Lambda + S3 seeder in [`infrastructure/`](./infrastructure/) is superseded.
+## More
 
-Library packages: `@tripwire/shared`, `@tripwire/store`, `@tripwire/feeds`, `@tripwire/lambda-seeder` (deployed), `@tripwire/watcher` (interface + mock), `@tripwire/identity` (Linux + macOS readers + classifier), `@tripwire/engine` (rule loader + path predicates + allowlist + snooze + IoC enrichment), `@tripwire/notifier` (past-tense formatter + macOS terminal-notifier/osascript + Linux notify-send + platform factory), `@tripwire/dashboard` (Hono HTTP server on `localhost:7878`).
-
-A native macOS menu-bar app ships in [`apps/menubar-macos/`](./apps/menubar-macos/) — Swift, ~200 LOC, < 1 MB `.app` bundle. Polls the dashboard server and shows severity-aware SF Symbols, last-24h counts, active snooze status with one-click clear, and the last 5 events click-through to the dashboard.
-
-**The full daemon is alive.** `@tripwire/daemon` ties everything into a single long-running process: watcher → identify → engine → store → notifier + dashboard server.
-
-The user-facing CLI ships in `@tripwire/cli` — `tripwire setup` / `daemon run` / `daemon status` / `status` / `snooze {list,add,clear}` / `allowlist {list,add,remove}` / `ioc <package>` / `dashboard` / `doctor` / `uninstall`. `Formula/tripwire.rb` distributes the whole thing via Homebrew.
-
-Next: the deferred Rust fanotify helper that replaces `MockFsWatcher` with real kernel events on Linux; macOS native fsevents binding for write events.
-
-The full specification lives in [`spec/`](./spec/):
-
-- [`spec/README.md`](./spec/README.md) — project pitch and quick start
-- [`spec/agent-tripwire-spec.md`](./spec/agent-tripwire-spec.md) — technical specification
-- [`spec/INSTALL.md`](./spec/INSTALL.md) — installation guide
-- [`spec/docs/rules.md`](./spec/docs/rules.md) — rule authoring guide
-- [`spec/docs/community-feed.md`](./spec/docs/community-feed.md) — community IoC feed design
-- [`spec/CONTRIBUTING.md`](./spec/CONTRIBUTING.md)
-- [`spec/SECURITY.md`](./spec/SECURITY.md)
-
-Build order is in `spec/agent-tripwire-spec.md §12`.
+- [`spec/agent-tripwire-spec.md`](./spec/agent-tripwire-spec.md) — full technical spec
+- [`spec/INSTALL.md`](./spec/INSTALL.md) · [`spec/docs/rules.md`](./spec/docs/rules.md) · [`spec/docs/feed.md`](./spec/docs/feed.md)
+- [`spec/CONTRIBUTING.md`](./spec/CONTRIBUTING.md) · [`spec/SECURITY.md`](./spec/SECURITY.md)
