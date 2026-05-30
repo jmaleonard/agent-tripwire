@@ -45,21 +45,30 @@ The `deltas` form a chain (each `base_date` is the previous entry's `date`).
 `full` is the fallback baseline for a client that's never synced or has fallen
 off the retained chain.
 
-## Producer — `.github/workflows/seed-feed.yml`
+## Producer — the feed repo's own workflow
 
-Runs daily at 06:00 UTC (this repo has the source):
+The daily job lives **in the `tripwire-feed` repo** (`.github/workflows/seed-feed.yml`)
+and publishes to itself using the built-in `GITHUB_TOKEN` — **no PAT or secrets
+to configure.** It runs a self-contained bundle of `scripts/publish-feed.mjs`
+(esbuild, ~12 KB, no `npm install`), so the feed repo doesn't need this source
+tree at runtime. Daily at 06:00 UTC (or **Run workflow**):
 
-1. Build `@tripwire/feeds`, run the seeder (Aikido npm + PyPI) → today's set.
+1. Run the seeder (Aikido npm + PyPI) → today's set.
 2. Download the previous `latest.json` (release asset) to diff against; read
-   the previous `manifest.json` from the checked-out feed repo.
+   the previous `manifest.json` from the repo.
 3. `planPublish()` (`packages/feeds/src/publish.ts`) → snapshot + delta +
    manifest, pruning the delta chain to 30 days.
 4. Upload `latest.json` as the release asset (`--clobber`); commit
-   `manifest.json` + `delta-<date>.json` to the feed repo.
+   `manifest.json` + `delta-<date>.json`.
 
-**Setup required:** a repo secret `FEED_REPO_TOKEN` — a PAT (or fine-grained
-token) with `contents:write` on `jmaleonard/tripwire-feed`. The feed repo must
-exist and be public.
+`scripts/publish-feed.mjs` here is the **source of truth**; regenerate the
+feed repo's bundle after changing it:
+
+```bash
+pnpm --filter @tripwire/shared --filter @tripwire/feeds build
+npx esbuild scripts/publish-feed.mjs --bundle --platform=node --format=esm \
+  --outfile=<tripwire-feed>/scripts/publish-feed.mjs
+```
 
 ## Consumer — `IoCSyncService`
 
