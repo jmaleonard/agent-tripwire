@@ -63,7 +63,22 @@ export class IoCSyncService {
     this.now = opts.now ?? (() => new Date());
   }
 
+  private inflight: Promise<SyncResult> | undefined;
+
+  /**
+   * Pull the feed. Reentrant-safe: concurrent callers (startup sync, the 6h
+   * timer, a manual `ioc sync`) share one in-flight run rather than each
+   * downloading the snapshot and racing on `replaceAll`.
+   */
   async sync(): Promise<SyncResult> {
+    if (this.inflight) return this.inflight;
+    this.inflight = this.runSync().finally(() => {
+      this.inflight = undefined;
+    });
+    return this.inflight;
+  }
+
+  private async runSync(): Promise<SyncResult> {
     const state = this.feedState.get();
 
     const manifestRes = await this.doFetch(this.manifestUrl, {

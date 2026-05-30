@@ -9,9 +9,11 @@ The feed is a static, public, daily-refreshed dataset. Hosting it on S3 means
 paying for egress every time a client pulls (and clients can't read a
 private bucket without AWS creds). GitHub serves both halves for free:
 
-- **Full snapshot** (~28 MB) → a **release asset** on a rolling `feed` tag.
-  Release assets are CDN-backed, have no bandwidth billing, and don't count
-  against the repo's git history size.
+- **Full snapshot** (~28 MB) → a **release asset** on a rolling `feed` tag,
+  named `snapshot-<date>.json`. Release assets are CDN-backed, have no
+  bandwidth billing, and don't count against the repo's git history size. The
+  name is date-stamped (never reused) so the CDN URL is always fresh —
+  clobbering a single `latest.json` lets Fastly serve a stale copy.
 - **Deltas + manifest** (KB each) → **committed to the repo** under
   `feed/v1/`. Small, so the repo grows slowly, and the commit log doubles as
   an audit trail of what changed each day.
@@ -22,7 +24,8 @@ Repo: **`jmaleonard/tripwire-feed`** (public).
 
 ```
 Release `feed` tag:
-  latest.json                      full snapshot (today)  ← release asset
+  snapshot-YYYY-MM-DD.json         full snapshot, 3 newest retained ← manifest points here
+  latest.json                      clobbered mirror of newest       ← human convenience only
 
 Repo feed/v1/:
   manifest.json                    index the client reads first
@@ -36,7 +39,7 @@ Repo feed/v1/:
   "feed_version": 1,
   "generated_at": "2026-05-30T06:00:00.000Z",
   "latest_date": "2026-05-30",
-  "full":   { "date": "...", "url": "...latest.json", "sha256": "...", "count": 0, "bytes": 0 },
+  "full":   { "date": "...", "url": "...snapshot-2026-05-30.json", "sha256": "...", "count": 0, "bytes": 0 },
   "deltas": [ { "date": "...", "base_date": "...", "url": "...delta-….json", "sha256": "...", "added": 0, "removed": 0 } ]
 }
 ```
@@ -54,12 +57,13 @@ to configure.** It runs a self-contained bundle of `scripts/publish-feed.mjs`
 tree at runtime. Daily at 06:00 UTC (or **Run workflow**):
 
 1. Run the seeder (Aikido npm + PyPI) → today's set.
-2. Download the previous `latest.json` (release asset) to diff against; read
-   the previous `manifest.json` from the repo.
+2. Read the previous `manifest.json` from the repo and download the snapshot it
+   points at (`full.url`) to diff against.
 3. `planPublish()` (`packages/feeds/src/publish.ts`) → snapshot + delta +
    manifest, pruning the delta chain to 30 days.
-4. Upload `latest.json` as the release asset (`--clobber`); commit
-   `manifest.json` + `delta-<date>.json`.
+4. Upload `snapshot-<date>.json` (+ a `latest.json` mirror) as release assets,
+   prune to the 3 newest snapshots, and commit `manifest.json` +
+   `delta-<date>.json`.
 
 `scripts/publish-feed.mjs` here is the **source of truth**; regenerate the
 feed repo's bundle after changing it:

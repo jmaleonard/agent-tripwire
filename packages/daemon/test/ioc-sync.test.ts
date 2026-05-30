@@ -143,4 +143,14 @@ describe('IoCSyncService', () => {
     tampered.full.sha256 = 'deadbeef';
     await expect(service(stubFetch(tampered)).sync()).rejects.toThrow(/integrity check failed/);
   });
+
+  it('coalesces concurrent syncs into one in-flight run', async () => {
+    const stub = stubFetch(manifest());
+    const svc = service(stub);
+    const [a, b] = await Promise.all([svc.sync(), svc.sync()]);
+    // Both callers get the same result, but the snapshot was fetched once.
+    expect(a).toEqual(b);
+    expect(stub.calls.filter(u => u === MANIFEST_URL)).toHaveLength(1);
+    expect(stub.calls.filter(u => u === FULL_URL)).toHaveLength(1);
+  });
 });

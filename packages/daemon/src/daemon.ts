@@ -87,6 +87,7 @@ export class Daemon {
   feedState!: FeedStateRepository;
   private iocSync: IoCSyncService | undefined;
   private syncTimer: ReturnType<typeof setInterval> | undefined;
+  private syncTask: Promise<unknown> | undefined;
   private dashboard: RunningDashboard | undefined;
   private activeWatcher: FsWatcher | undefined;
   private watcherOff: (() => void) | undefined;
@@ -189,7 +190,8 @@ export class Daemon {
   private startIocSync(): void {
     if (!this.iocSync) return;
     const run = (): void => {
-      void this.syncIocs().catch(err =>
+      // Track the latest run so stop() can await it before closing the DB.
+      this.syncTask = this.syncIocs().catch(err =>
         this.logger.warn({ err }, 'IoC feed sync failed'),
       );
     };
@@ -265,6 +267,8 @@ export class Daemon {
     this.watcherOff?.();
     this.watcherErrOff?.();
     await this.waitIdle();
+    // Let an in-flight feed sync finish before the DB closes under it.
+    if (this.syncTask) await this.syncTask.catch(() => {});
     if (this.activeWatcher) await this.activeWatcher.stop();
     if (this.dashboard) await this.dashboard.close();
     closeDb(this.db);
