@@ -13,17 +13,16 @@
 //! - `watcher` — path resolution (literal + glob) + event loop
 //! - `pid`     — best-effort PID correlation (currently lsof on macOS/Linux)
 //!
-//! Backends (via the `notify` crate, transitional):
-//!   - Linux: inotify (no native PID)
-//!   - macOS: fsevents (no native PID, write-only)
-//!   - Windows: ReadDirectoryChangesW
-//!
-//! Linux fanotify (kernel-reported PID, more event kinds) replaces the Linux
-//! backend in a planned follow-up; the JSON-over-stdout protocol stays the
-//! same so the daemon doesn't need changes.
+//! Backends:
+//!   - Linux: fanotify (kernel-reported PID); falls back to inotify via
+//!     the `notify` crate if fanotify_init fails (no CAP_SYS_ADMIN, etc.).
+//!   - macOS: fsevents via `notify`, PID via `lsof` correlation.
+//!   - Windows: ReadDirectoryChangesW via `notify`.
 
 mod config;
 mod event;
+#[cfg(target_os = "linux")]
+mod linux;
 mod pid;
 mod watcher;
 

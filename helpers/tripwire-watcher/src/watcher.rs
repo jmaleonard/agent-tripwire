@@ -47,7 +47,23 @@ pub fn resolve_path(spec: &str) -> Vec<PathBuf> {
 /// Top-level event loop. Arms a recursive watcher on every resolved path
 /// from `cfg` and streams JSONL events to stdout until the receiver closes.
 /// Returns 0 on clean exit, non-zero when we couldn't even start.
+///
+/// On Linux we try fanotify first (native PID via the kernel) and fall
+/// through to the notify-crate inotify path only when fanotify is
+/// unavailable (no CAP_SYS_ADMIN, ancient kernel, etc.).
 pub fn run(cfg: &Config) -> i32 {
+    #[cfg(target_os = "linux")]
+    match crate::linux::try_run(cfg) {
+        Ok(rc) => return rc,
+        Err(e) => {
+            // EPERM (no CAP_SYS_ADMIN), ENOSYS (old kernel), EINVAL: fall back.
+            eprintln!(
+                "tripwire-watcher: fanotify unavailable ({}), falling back to inotify",
+                e
+            );
+        }
+    }
+
     let (tx, rx) = channel::<Result<Event, notify::Error>>();
     let mut watcher: RecommendedWatcher = match notify::recommended_watcher(move |res| {
         let _ = tx.send(res);
