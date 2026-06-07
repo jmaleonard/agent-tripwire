@@ -17,7 +17,7 @@ agent-tripwire runs on macOS and Linux. Windows support is on the roadmap (Phase
 ### Recommended: one-shot installer
 
 ```bash
-curl -fsSL https://tripwire.dawnika.dev/install.sh | sh
+curl -fsSL https://jmaleonard.github.io/agent-tripwire/install.sh | sh
 ```
 
 The installer:
@@ -33,14 +33,14 @@ The installer never modifies anything outside `~/.tripwire/` and (with consent) 
 ### Via npm
 
 ```bash
-npm install -g @dawnika/agent-tripwire
+npm install -g @jmaleonard/agent-tripwire
 tripwire setup
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/dawnika/agent-tripwire.git
+git clone https://github.com/jmaleonard/agent-tripwire.git
 cd agent-tripwire
 pnpm install
 pnpm build
@@ -69,7 +69,7 @@ The installer creates this layout:
 
 Then registers the daemon for autostart:
 
-- **macOS**: `~/Library/LaunchAgents/dev.dawnika.tripwired.plist`. Loaded with `launchctl bootstrap gui/$UID`.
+- **macOS**: `~/Library/LaunchAgents/io.github.jmaleonard.tripwired.plist`. Loaded with `launchctl bootstrap gui/$UID`.
 - **Linux (systemd)**: `~/.config/systemd/user/tripwired.service`. Enabled with `systemctl --user enable --now tripwired`.
 
 Unlike v0.1, the installer does **not** wrap your package managers and does not touch your PATH. Calling `npm` does what it has always done; tripwire is observing from the side.
@@ -159,7 +159,7 @@ If you installed via npm:
 
 ```bash
 tripwire uninstall
-npm uninstall -g @dawnika/agent-tripwire
+npm uninstall -g @jmaleonard/agent-tripwire
 ```
 
 ## Troubleshooting
@@ -168,7 +168,7 @@ npm uninstall -g @dawnika/agent-tripwire
 
 ```bash
 tripwire doctor
-launchctl print gui/$UID/dev.dawnika.tripwired         # macOS
+launchctl print gui/$UID/io.github.jmaleonard.tripwired         # macOS
 systemctl --user status tripwired                       # Linux
 tail -f ~/.tripwire/tripwire.log
 ```
@@ -285,4 +285,4 @@ tripwire update
 
 Pulls the latest release, verifies signature, swaps binaries atomically, restarts the daemon, refreshes the bundled rule pack and IoC snapshot. Your config, allowlist, snoozes, and event history are preserved.
 
-Subscribe to releases on GitHub or follow the RSS feed at `https://tripwire.dawnika.dev/releases.rss` for notifications.
+Subscribe to releases on GitHub or follow the RSS feed at `https://github.com/jmaleonard/agent-tripwire/releases.atom` for notifications.

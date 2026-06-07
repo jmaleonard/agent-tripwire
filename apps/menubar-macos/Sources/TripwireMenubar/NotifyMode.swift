@@ -36,7 +36,7 @@ struct NotifyArgs {
 }
 
 /// Fire a single notification via UNUserNotificationCenter and exit. Uses the
-/// .app bundle identifier (dev.dawnika.tripwire.menubar) so banners appear
+/// .app bundle identifier (io.github.jmaleonard.tripwire.menubar) so banners appear
 /// with "Tripwire Menubar" as the source app.
 ///
 /// Authorization MUST already be granted — we don't call requestAuthorization

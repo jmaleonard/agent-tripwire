@@ -17,6 +17,6 @@ export function cliPaths(): CliPaths {
     dbPath: join(tripwireDir, 'events.db'),
     logFile: join(tripwireDir, 'tripwired.log'),
     errLogFile: join(tripwireDir, 'tripwired.err.log'),
-    launchAgentPlist: join(home, 'Library', 'LaunchAgents', 'dev.dawnika.tripwired.plist'),
+    launchAgentPlist: join(home, 'Library', 'LaunchAgents', 'io.github.jmaleonard.tripwired.plist'),
   };
 }

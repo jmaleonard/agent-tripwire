@@ -1,7 +1,7 @@
 # agent-tripwire — Technical Specification
 
 **Working name:** `agent-tripwire` (rename freely)
-**Owner:** Dawnika
+**Owner:** Jared Leonard
 **Status:** Draft v0.2 — scope rewrite, 2026-05-16
 **Target consumer:** Claude Code
 
@@ -791,7 +791,7 @@ dashboard:
 
 community_feed:
   enabled: false
-  endpoint: "https://feed.tripwire.dawnika.dev/submit"
+  endpoint: "https://feed.tripwire.jmaleonard.dev/submit"
   batch_interval_hours: 6
   batch_jitter_minutes: 30
 

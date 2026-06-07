@@ -12,7 +12,7 @@ If you have found a vulnerability in tripwire itself — for example:
 - A way to poison the IoC feed or rule pack distribution.
 - A way to exfiltrate user data via the dashboard or community feed plumbing.
 
-**Please do not open a public issue.** Email `security@dawnika.dev` with:
+**Please do not open a public issue.** Use GitHub's [private vulnerability reporting](https://github.com/jmaleonard/agent-tripwire/security/advisories/new) (the "Report a vulnerability" button on the repo's Security tab) and include:
 
 - A description of the issue and its impact.
 - Steps to reproduce, or a proof-of-concept.
@@ -24,7 +24,7 @@ We will:
 - Triage and respond with a remediation plan within 7 days for high-severity issues.
 - Coordinate a disclosure timeline with you, defaulting to public disclosure 90 days after report or upon fix release, whichever is sooner.
 
-For especially sensitive reports, request our PGP key in your first email and we will share it for follow-up.
+For especially sensitive reports, request our PGP key in the private advisory thread and we will share it for follow-up.
 
 ## Scope
 
@@ -37,8 +37,8 @@ In scope:
 - The notification subsystem.
 - The IoC seeder and bundled feed integrations.
 - The local dashboard.
-- The community IoC feed infrastructure (`feed.tripwire.dawnika.dev`), including the re-verification worker and its sandbox.
-- The release distribution pipeline (`tripwire.dawnika.dev`, signed manifests, npm package).
+- The community IoC feed infrastructure (`feed.tripwire.jmaleonard.dev`), including the re-verification worker and its sandbox.
+- The release distribution pipeline (`jmaleonard.github.io/agent-tripwire`, signed manifests, npm package).
 - The bundled rule pack, IoC snapshot, and default allowlist.
 
 Out of scope:

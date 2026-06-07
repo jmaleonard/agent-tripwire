@@ -2,7 +2,7 @@
 
 **Status:** Draft v0.2 — runtime-observed framing, 2026-05-16
 **Companion to:** `agent-tripwire-spec.md`
-**Audience:** Claude Code (build), Dawnika (operate), users (decide whether to opt in)
+**Audience:** Claude Code (build), Jared Leonard (operate), users (decide whether to opt in)
 
 ---
 
@@ -18,9 +18,9 @@ This document specifies how that feed works without compromising the privacy of 
 
 ## 2. Non-Goals
 
-- **Not user telemetry.** Dawnika does not need or want to know who is running tripwire, what projects they have, or what they install. If the design ever requires that, the design is wrong.
+- **Not user telemetry.** The maintainers do not need or want to know who is running tripwire, what projects they have, or what they install. If the design ever requires that, the design is wrong.
 - **Not a replacement for OSV or GitHub Advisory.** Those are authoritative, curated databases with their own governance. The community feed is a faster, complementary signal — and a *different shape* of signal (behavioral, not static). Where we have signal those feeds lack, we publish; where they publish first, we attach as a cross-reference.
-- **Not a marketing channel.** The feed exists to inform defenders. It is not a vector for Dawnika analytics, A/B tests, or growth instrumentation.
+- **Not a marketing channel.** The feed exists to inform defenders. It is not a vector for maintainer analytics, A/B tests, or growth instrumentation.
 - **Not optional infrastructure.** Even if the community feed is never built, Phase 1 telemetry plumbing must be designed so the privacy posture is right from day one. Adding privacy after the fact is the wrong order.
 
 ## 3. Trust & Threat Model
@@ -145,13 +145,13 @@ Phase 1 ships **without** prevalence. The package-centric model alone is enough 
    d. Runs the package's install + a minimal exercise loop in a sandbox and confirms the cited rule fires under the cited ancestry category.
    e. If the rule fires → submission is confirmed. If it doesn't → discarded (logged for rule-quality monitoring).
 5. Confirmed entries enter the **curation queue**.
-6. **Curators** (initially Dawnika maintainers; later a trust group):
+6. **Curators** (initially the maintainers; later a trust group):
    a. Review for severity assessment.
    b. Check for active maintainer dispute.
    c. Cross-reference OSV / GitHub Advisory / Aikido — if already published there, attach as `cross_references` rather than mark duplicate.
    d. Promote to the published feed.
 7. **Publication pipeline:**
-   a. Confirmed IoC entries are committed to a public Git repo (`github.com/dawnika/tripwire-community-feed`).
+   a. Confirmed IoC entries are committed to a public Git repo (`github.com/jmaleonard/tripwire-community-feed`).
    b. Cosigned with the feed's Sigstore identity.
    c. Distributed via the Git repo + a CDN-fronted JSON mirror.
 8. **Tripwire clients** pull the latest signed feed snapshot at the configured refresh interval and verify the signature before merging into the local IoC DB.
@@ -221,7 +221,7 @@ The community feed is one of several feed sources in `packages/feeds/`. It imple
 
 ### Third-party consumers
 
-The feed is public. Other tools (Aikido, Socket, Snyk, OSS Review Toolkit, custom CI checks) can consume it directly. Documented at `feed.tripwire.dawnika.dev/docs`. CORS-enabled JSON endpoints, deterministic schema.
+The feed is public. Other tools (Aikido, Socket, Snyk, OSS Review Toolkit, custom CI checks) can consume it directly. Documented at `feed.tripwire.jmaleonard.dev/docs`. CORS-enabled JSON endpoints, deterministic schema.
 
 ## 8. Privacy guarantees (user-facing)
 
@@ -261,7 +261,7 @@ environment, your process identity, or any user-derived identifier.
 You can review the exact bytes sent at any time with
 `tripwire community last-submission`.
 
-Read the full design: https://tripwire.dawnika.dev/community-feed
+Read the full design: https://jmaleonard.github.io/agent-tripwire/community-feed
 
 Contribute to the community feed? [y/N]
 ```
@@ -296,7 +296,7 @@ Even if the community feed infrastructure is built after Phase 1 ships, Phase 1 
    ```yaml
    community_feed:
      enabled: false
-     endpoint: "https://feed.tripwire.dawnika.dev/submit"
+     endpoint: "https://feed.tripwire.jmaleonard.dev/submit"
      batch_interval_hours: 6
      batch_jitter_minutes: 30
      include_prevalence: false   # Phase 2 of feed
@@ -309,7 +309,7 @@ Even if the community feed infrastructure is built after Phase 1 ships, Phase 1 
 
 ### Phase 1 does NOT need
 
-- The server-side aggregator (`feed.tripwire.dawnika.dev`).
+- The server-side aggregator (`feed.tripwire.jmaleonard.dev`).
 - The re-verification worker (including the sandboxed package-exercise step).
 - The curation queue UI.
 - The publication pipeline.
@@ -321,10 +321,10 @@ Those are the **feed operator's** infrastructure, built separately. The Phase 1 
 
 ### Phase 1 of governance (now)
 
-- Dawnika operates the submission endpoint and curation queue.
+- Jared Leonard operates the submission endpoint and curation queue.
 - All curation decisions are logged publicly in the feed Git repo (`curation-log/`).
 - Maintainer disputes are handled via GitHub issue on the feed repo, with documented SLA.
-- The feed's signing key is held by Dawnika with a documented key-rotation policy.
+- The feed's signing key is held by Jared Leonard with a documented key-rotation policy.
 
 ### Phase 2 of governance (after the feed has signal)
 

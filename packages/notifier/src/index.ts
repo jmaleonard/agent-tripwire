@@ -30,7 +30,7 @@ export function createNotifier(): Notifier {
 /**
  * Find the Tripwire Menubar.app's main binary on disk. The daemon spawns it
  * with `--notify ...` to fire notifications under our bundle identity
- * (`dev.dawnika.tripwire.menubar`) — banners then show "Tripwire Menubar"
+ * (`io.github.jmaleonard.tripwire.menubar`) — banners then show "Tripwire Menubar"
  * as the source app instead of "terminal-notifier" / "Script Editor".
  */
 export function findTripwireMacosNotifier(): string | undefined {

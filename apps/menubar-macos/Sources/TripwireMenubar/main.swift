@@ -3,7 +3,7 @@ import Foundation
 
 // `--notify` mode: short-lived process that fires a single notification via
 // UNUserNotificationCenter and exits. The daemon's MacosNotifier invokes us
-// this way. Bundle identifier dev.dawnika.tripwire.menubar → notification
+// this way. Bundle identifier io.github.jmaleonard.tripwire.menubar → notification
 // source app is "Tripwire Menubar".
 //
 //   TripwireMenubar --notify --title "..." [--subtitle "..."] --body "..."

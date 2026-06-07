@@ -68,10 +68,10 @@ Install both. Tripwire deliberately does not duplicate Aikido/Socket's install-t
 
 ```bash
 # Install
-curl -fsSL https://tripwire.dawnika.dev/install.sh | sh
+curl -fsSL https://jmaleonard.github.io/agent-tripwire/install.sh | sh
 
 # Or via npm
-npm install -g @dawnika/agent-tripwire
+npm install -g @jmaleonard/agent-tripwire
 
 # Start the daemon and run the first-run wizard
 tripwire setup
@@ -179,4 +179,4 @@ TBD. (Apache-2.0 or MIT recommended for ecosystem adoption.)
 
 Built alongside the open ecosystem of supply-chain defenders: Aikido (Safe Chain + the public malware list), Socket, StepSecurity, Snyk, OSV, the GitHub Advisory team. Tripwire's job is to put runtime visibility next to their install-time visibility, not to duplicate it.
 
-— Dawnika
+— Jared Leonard

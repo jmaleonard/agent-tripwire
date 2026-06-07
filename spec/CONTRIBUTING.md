@@ -5,7 +5,7 @@ Thanks for considering a contribution. This project exists because the npm and P
 ## Quick start
 
 ```bash
-git clone https://github.com/dawnika/agent-tripwire.git
+git clone https://github.com/jmaleonard/agent-tripwire.git
 cd agent-tripwire
 pnpm install
 pnpm build

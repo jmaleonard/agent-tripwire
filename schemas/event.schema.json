@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://tripwire.dawnika.dev/schemas/event.schema.json",
+  "$id": "https://jmaleonard.github.io/agent-tripwire/schemas/event.schema.json",
   "title": "TripwireEvent",
   "type": "object",
   "required": ["event_id", "timestamp", "source", "severity", "rule_id", "identity"],

@@ -5,7 +5,7 @@
     <key>CFBundleExecutable</key>
     <string>TripwireMenubar</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.dawnika.tripwire.menubar</string>
+    <string>io.github.jmaleonard.tripwire.menubar</string>
     <key>CFBundleName</key>
     <string>Tripwire Menubar</string>
     <key>CFBundleDisplayName</key>
@@ -23,7 +23,7 @@
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHumanReadableCopyright</key>
-    <string>© 2026 Dawnika.</string>
+    <string>© 2026 Jared Leonard.</string>
     <!-- Allow http://localhost:* — the daemon dashboard. Codesigned apps
          enforce App Transport Security strictly otherwise, silently blocking
          URLSession requests to the daemon. -->
