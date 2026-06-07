@@ -7,6 +7,7 @@ import { setupCommand } from './commands/setup.js';
 import { snoozeCommand } from './commands/snooze.js';
 import { statusCommand } from './commands/status.js';
 import { testEventCommand } from './commands/test-event.js';
+import { tuiCommand } from './commands/tui.js';
 import { uninstallCommand } from './commands/uninstall.js';
 
 type Handler = (args: string[]) => Promise<number>;
@@ -14,6 +15,7 @@ type Handler = (args: string[]) => Promise<number>;
 const COMMANDS: Record<string, Handler> = {
   setup: setupCommand,
   status: statusCommand,
+  tui: tuiCommand,
   doctor: doctorCommand,
   snooze: snoozeCommand,
   allowlist: allowlistCommand,
@@ -54,6 +56,7 @@ ${c.bold}Commands${c.reset}
   ${c.cyan}daemon${c.reset} run     run the daemon in the foreground
   ${c.cyan}daemon${c.reset} status  check if the daemon is reachable
   ${c.cyan}status${c.reset}         show counts + recent events + snooze state
+  ${c.cyan}tui${c.reset}            live event inspector (interactive terminal UI)
   ${c.cyan}snooze${c.reset}         list / add / clear snoozes
   ${c.cyan}allowlist${c.reset}      list / add / remove allowlist entries
   ${c.cyan}ioc${c.reset} <package>  look up IoC entries for a package
