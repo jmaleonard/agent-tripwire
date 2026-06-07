@@ -12,7 +12,8 @@
 <p align="center">
   <img alt="platform: macOS | Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-444">
   <img alt="status: alpha" src="https://img.shields.io/badge/status-alpha-e5484d">
-  <img alt="local-first" src="https://img.shields.io/badge/local--first-no%20telemetry-2da44e">
+  <img alt="free to run" src="https://img.shields.io/badge/free-to%20run-2da44e">
+  <img alt="contributions welcome" src="https://img.shields.io/badge/contributions-welcome-1f6feb">
 </p>
 
 ---
@@ -30,6 +31,10 @@ it and tells you — after the fact, in plain language:
 
 A malicious npm/PyPI package or a coding agent gone rogue reads your credentials
 silently. Tripwire makes it **loud**.
+
+It's **free to run and open for contributions.** The whole thing rides on
+GitHub: the daily malware feed is generated and served from GitHub at no cost,
+and tripwire pulls it directly — there's nothing for you to host or pay for.
 
 ## Why you need it
 
@@ -134,6 +139,15 @@ tripwire allowlist add <rule> --process /usr/bin/aws   # bless a known-good acto
 tripwire ioc <package>          # is this package on the malware list?
 ```
 
+## Free & open for contributions
+
+Tripwire is free to run, and so is everything behind it — the malware feed is
+built and published from GitHub on a schedule, with nothing to host on your end.
+
+The source is open for contributions, and the single highest-leverage one is
+tuning the default allowlist against real workstation traffic so the tool stays
+quiet and useful. Start with [CONTRIBUTING](./spec/CONTRIBUTING.md).
+
 ## Status
 
 Alpha. The daemon, CLI, `tripwire tui`, macOS menu-bar app, and the malware feed
@@ -149,4 +163,6 @@ landed. The feed is published daily and free to host — see
 
 ## License
 
-TBD (Apache-2.0 or MIT planned).
+Source-available, **all rights reserved**: you can read it, run it, and
+contribute — but not copy, redistribute, or fork it for your own use without
+permission. See [LICENSE](./LICENSE).

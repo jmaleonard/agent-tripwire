@@ -1,0 +1,35 @@
+Tripwire — Proprietary, Source-Available License
+Copyright © 2026 Jared Leonard. All rights reserved.
+
+This source code is published for transparency and to accept contributions.
+It is source-available, NOT open-source.
+
+YOU MAY:
+  - View and read the source code.
+  - Install and run the published software for your own personal or internal
+    business use.
+  - Submit contributions (issues, pull requests). By submitting a contribution,
+    you grant Jared Leonard a perpetual, worldwide, royalty-free, irrevocable
+    license to use, modify, sublicense, and distribute that contribution as part
+    of this project under this license.
+
+YOU MAY NOT, without prior written permission from the copyright holder:
+  - Copy, reproduce, fork for redistribution, mirror, or otherwise distribute
+    the source code or any compiled form, in whole or in part.
+  - Modify the software or create derivative, adapted, or competing works.
+  - Sublicense, sell, rent, or offer the software (or a derivative) as a
+    hosted or commercial service.
+  - Remove or alter this license or any copyright notice.
+
+All rights not expressly granted above are reserved.
+
+For any use beyond the grant above — including redistribution, commercial use,
+or derivative works — contact the copyright holder to request a separate
+license.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

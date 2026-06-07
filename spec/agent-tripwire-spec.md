@@ -2,32 +2,15 @@
 
 **Working name:** `agent-tripwire` (rename freely)
 **Owner:** Jared Leonard
-**Status:** Draft v0.2 — scope rewrite, 2026-05-16
+**Status:** Draft v0.2 — 2026-05-16
 **Target consumer:** Claude Code
 
 ---
 
-## Scope rewrite summary (read first)
-
-v0.1 of this spec described a tool that wrapped `npm` / `pnpm` / `yarn` / `pip` / `uv`, scanned packages at install time, and aborted the install on critical findings. **That framing is removed.**
-
-Reasons:
-
-1. Install-time blocking is a solved space — Aikido Safe Chain (open source, ~200k weekly npm downloads, free) and Socket Firewall already do it well.
-2. The real gap is runtime detection on developer workstations. No one currently runs a daemon on the dev machine that watches sensitive paths and tells the user when something reads them.
-3. The product intent is honest, after-the-fact awareness. "Hey, this thing just read your SSH key — you okay with that?" The user decides. We don't block; we report.
-
-The new positioning: tripwire is the runtime layer Aikido Safe Chain doesn't have. Recommended to be installed *alongside* it, not instead of.
-
-> **Update (2026-06): dashboard replaced by a TUI.** The local **web dashboard**
-> described in §6.6 and §6.12 has been **removed**. Inspection is now
-> `tripwire tui` (an Ink terminal UI) plus the macOS menu-bar app, both reading
-> the SQLite store at `~/.tripwire/events.db` directly. SQLite (WAL) is the IPC
-> between the daemon, CLI, TUI, and menu-bar; daemon liveness is a heartbeat row
-> in the store (`meta.daemon_heartbeat`). Wherever this spec says "dashboard" /
-> "localhost:7878" / "Hono", read "the store + the TUI/menu-bar that read it";
-> the `notifier.surfaces.dashboard` and top-level `dashboard:` config blocks
-> below are obsolete.
+> **Inspection is `tripwire tui`** (an Ink terminal UI) and the macOS menu-bar
+> app, both reading the SQLite store at `~/.tripwire/events.db`. Where sections
+> below mention a "dashboard" / "localhost:7878" / "Hono", read "the store + the
+> clients that read it" — those endpoints describe data shapes, not a server.
 
 ## 1. Purpose
 
@@ -117,7 +100,6 @@ We are **not** defending against:
 | `notifier/` | P1 | Native OS notification surfaces |
 | `snooze/` | P1 | Snooze state + duration management |
 | `store/` | P1 | SQLite-backed event store + query API |
-| ~~`dashboard/`~~ | — | **Removed.** Replaced by `tripwire tui` (Ink) + the menu-bar app, which read the store directly. |
 | `cli/` | P1 | User-facing `tripwire` CLI (status, snooze, allowlist, doctor). **Not shims.** |
 | `net-correlator/` | P2 | eBPF-based read↔egress correlation |
 | `aikido-bridge/` | P6 | Read Aikido Safe Chain's local logs and correlate |
@@ -268,16 +250,7 @@ agent-tripwire/
 │   │       ├── store.ts          # snooze table + active queries
 │   │       ├── presets.ts
 │   │       └── indicator.ts      # banner for new shells (Phase 1 fallback)
-│   ├── dashboard/                # Local web UI
-│   │   └── src/
-│   │       ├── server/
-│   │       │   ├── index.ts      # Hono server
-│   │       │   └── routes/
-│   │       └── client/
-│   │           ├── index.html
-│   │           ├── app.tsx
-│   │           └── components/
-│   └── cli/                      # User-facing `tripwire` CLI (no shims)
+│   └── cli/                      # User-facing `tripwire` CLI (incl. `tui`)
 │       ├── src/
 │       │   ├── setup.ts
 │       │   ├── doctor.ts
@@ -776,7 +749,6 @@ rules:
 
 notifier:
   surfaces:
-    dashboard: true
     native:    true
     terminal:  false                # Phase 2
 
@@ -795,12 +767,6 @@ feeds:
   enabled: [aikido, osv, github-advisory]
   refresh_interval_hours: 24
   offline_mode: false
-
-dashboard:
-  enabled: true
-  host: 127.0.0.1
-  port: 7878
-  auto_open: false
 
 community_feed:
   enabled: false

@@ -146,7 +146,7 @@ If you've spotted a malicious package's runtime behavior in the wild and want to
 
 ## License
 
-By contributing, you agree your contributions are licensed under the project's license (TBD; expected Apache-2.0 or MIT).
+Tripwire is source-available under a proprietary, all-rights-reserved license — see [LICENSE](../LICENSE). By submitting a contribution you grant the copyright holder a perpetual, worldwide, royalty-free license to use, modify, and distribute it as part of the project. Contributions are welcome; redistributing or forking the project for your own use is not permitted without written permission.
 
 ## Code of conduct
 
