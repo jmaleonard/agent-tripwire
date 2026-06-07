@@ -31,7 +31,7 @@ the CLI, `tripwire tui` (Ink), and the menu-bar app read it directly. The old
 pnpm install        # NOT `npm install` — npm leaves a stray package-lock.json
 pnpm build          # tsc across packages; required before typecheck
 pnpm typecheck      # needs a prior `pnpm build` (project refs / .d.ts outputs)
-pnpm test           # vitest; ~303 tests
+pnpm test           # vitest; ~308 tests
 ```
 
 If tests fail with "Failed to load url better-sqlite3/yaml/@aws-sdk", someone ran
@@ -82,5 +82,13 @@ Format/details: `spec/docs/feed.md`.
 - Decommission the legacy AWS seeder (now that the GitHub feed is live):
   `aws cloudformation delete-stack --stack-name agent-tripwire-seeder --region us-east-1`
   (bucket is `DeletionPolicy: Retain`; remove separately). Account `190236274723`.
-- Linux `fanotify` watcher helper (macOS uses the `notify` crate today).
-- `feat/github-feed-sync` not yet merged to `main` / no PR.
+  **Deferred** — AWS is intentionally left running for now.
+
+## Recently landed (on `main`)
+
+- `dawnika` → `jmaleonard` everywhere (bundle IDs `io.github.jmaleonard.*`, docs).
+- **No HTTP server.** Removed `@tripwire/dashboard`; SQLite (WAL) is the IPC. The
+  CLI, `tripwire tui` (Ink), and menu-bar read the store directly; the daemon
+  writes a `meta.daemon_heartbeat` row for liveness.
+- Linux **fanotify** watcher with kernel-reported PID (upstream; merged here).
+- `feat/github-feed-sync` merged to `main` and pushed to S3.
