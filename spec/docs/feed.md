@@ -77,7 +77,7 @@ npx esbuild scripts/publish-feed.mjs --bundle --platform=node --format=esm \
 ## Consumer — `IoCSyncService`
 
 `packages/daemon/src/ioc-sync.ts`. The daemon syncs on startup and every 6h
-(and on demand via `tripwire ioc sync` → `POST /api/iocs/sync`):
+(and on demand via `tripwire ioc sync`, which runs standalone — no server):
 
 1. Conditional `GET manifest.json` (ETag); `304` → nothing to do.
 2. `planSync(manifest, syncedDate)` → `up_to_date` | `delta` | `full`.
@@ -87,6 +87,30 @@ npx esbuild scripts/publish-feed.mjs --bundle --platform=node --format=esm \
 
 Overrides: `TRIPWIRE_FEED_URL` (manifest URL), `TRIPWIRE_NO_FEED_SYNC=1`
 (disable).
+
+## Public report — top offenders (GitHub Pages)
+
+A public page ranks the feed's "top offenders" (most recently flagged, biggest
+campaigns, highest-confidence/multi-source). Same GitHub-native, no-AWS pattern
+as the feed: a job generates a static page and deploys it to GitHub Pages — no
+DB, no server.
+
+- Ranking + HTML live in `@tripwire/feeds` (`computeTopOffenders` /
+  `renderTopOffendersHtml`, unit-tested). `scripts/build-site.mjs` is the IO:
+  fetch the manifest → verify the snapshot SHA-256 → write
+  `site/{index.html,top-offenders.json}`.
+- The `tripwire-feed` workflow runs a bundled `build-site.mjs` after publishing
+  and deploys `site/` to Pages → `https://jmaleonard.github.io/tripwire-feed/`.
+- `scripts/build-site.mjs` here is the **source of truth**; regenerate the bundle
+  after changes:
+  ```bash
+  pnpm --filter @tripwire/shared --filter @tripwire/feeds build
+  npx esbuild scripts/build-site.mjs --bundle --platform=node --format=esm \
+    --outfile=<tripwire-feed>/scripts/build-site.mjs
+  ```
+- Campaigns + multi-source sections populate only when the feed carries that
+  data; with the Aikido-only feed today, "most recently flagged" is the live
+  section.
 
 ## Migrating off AWS
 
