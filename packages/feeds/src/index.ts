@@ -19,3 +19,11 @@ export {
   type PlanPublishInput,
   type PublishPlan,
 } from './publish.js';
+export {
+  computeTopOffenders,
+  type TopOffendersReport,
+  type TopOffenderEntry,
+  type CampaignSummary,
+  type TopOffendersOptions,
+} from './top-offenders.js';
+export { renderTopOffendersHtml, type RenderSiteMeta } from './top-offenders-html.js';
