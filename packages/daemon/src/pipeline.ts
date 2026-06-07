@@ -15,8 +15,6 @@ export interface PipelineDeps {
   classifierConfig: ClassifierConfig;
   identityEnvKeys: ReadonlySet<string>;
   logger: Logger;
-  /** Passed to notifier.notify so click-to-open lands on the right URL. */
-  dashboardUrl?: string;
   /** Notifier severity threshold; defaults to `medium`. */
   minSeverity?: Severity;
   /** Override the path-match home (mostly for tests). */
@@ -60,7 +58,6 @@ export async function handleFsEvent(deps: PipelineDeps, fsEvent: FsEvent): Promi
     deps.events.insert(event);
     try {
       const notified = await deps.notifier.notify(event, {
-        ...(deps.dashboardUrl !== undefined ? { dashboardUrl: deps.dashboardUrl } : {}),
         ...(deps.minSeverity !== undefined ? { minSeverity: deps.minSeverity } : {}),
       });
       if (notified) {

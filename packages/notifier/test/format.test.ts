@@ -149,20 +149,6 @@ describe('formatEvent', () => {
     expect(p.body).toMatch(/aikido\/osv/);
   });
 
-  it('builds openUrl from dashboardUrl + event_id', () => {
-    const p = formatEvent(makeEvent(), { dashboardUrl: 'http://localhost:7878' });
-    expect(p.openUrl).toBe('http://localhost:7878/events/evt-1');
-  });
-
-  it('strips trailing slash from dashboardUrl', () => {
-    const p = formatEvent(makeEvent(), { dashboardUrl: 'http://localhost:7878/' });
-    expect(p.openUrl).toBe('http://localhost:7878/events/evt-1');
-  });
-
-  it('omits openUrl when dashboardUrl is not provided', () => {
-    expect(formatEvent(makeEvent()).openUrl).toBeUndefined();
-  });
-
   it('handles missing path / event_kind gracefully', () => {
     const p = formatEvent(makeEvent({ path: undefined, event_kind: undefined }));
     expect(p.body).toContain('<unknown path>');

@@ -1,6 +1,5 @@
 import { createLogger, type Logger, type Rule, type Severity } from '@tripwire/shared';
 import { Engine } from '@tripwire/engine';
-import { startDashboard, type RunningDashboard } from '@tripwire/dashboard';
 import {
   DEFAULT_CLASSIFIER_CONFIG,
   DEFAULT_IDENTITY_ENV_KEYS,
@@ -14,6 +13,7 @@ import {
   EventRepository,
   FeedStateRepository,
   IoCRepository,
+  MetaRepository,
   openDb,
   SnoozeRepository,
   type DbHandle,
@@ -28,6 +28,12 @@ import { createPlatformReader, createPlatformWatcher } from './platform.js';
 
 /** How often the daemon re-syncs the IoC feed once running. */
 const DEFAULT_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+
+/**
+ * How often the daemon writes its liveness heartbeat. Must be comfortably under
+ * the store's DEFAULT_HEARTBEAT_STALE_MS (90s) so readers see it as alive.
+ */
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000; // 30s
 
 export interface IoCSyncConfig {
   /** Enable periodic IoC feed sync. Default false (tests/offline). */
@@ -55,10 +61,8 @@ export interface DaemonOptions {
   writePaths?: ReadonlyArray<string>;
   /** IoC feed sync config. Disabled by default; the CLI `daemon run` enables it. */
   iocSync?: IoCSyncConfig;
-  /** Start the dashboard HTTP server? Default true. */
-  startDashboardServer?: boolean;
-  dashboardPort?: number;
-  dashboardHost?: string;
+  /** Liveness heartbeat interval in ms. Default 30s. Set 0 to write once on start (tests). */
+  heartbeatIntervalMs?: number;
   /** Override the path-match home (mostly for tests). */
   home?: string;
   /** Override the clock. */
@@ -69,9 +73,10 @@ export interface DaemonOptions {
 
 /**
  * The thing that gets installed as a launchd / systemd user unit. Wires
- * watcher → identify → engine → store → notifier, plus the dashboard HTTP
- * server. Lifecycle is start() / stop(). For graceful shutdown, stop()
- * awaits inflight pipeline work before tearing repos down.
+ * watcher → identify → engine → store → notifier. There is no network surface:
+ * the CLI, TUI, and menu-bar app all read the same SQLite store directly, and
+ * the daemon publishes a liveness heartbeat into it. Lifecycle is start() /
+ * stop(); stop() awaits inflight pipeline work before tearing repos down.
  */
 export class Daemon {
   private readonly opts: DaemonOptions;
@@ -85,10 +90,11 @@ export class Daemon {
   allowlist!: AllowlistRepository;
   iocs!: IoCRepository;
   feedState!: FeedStateRepository;
+  meta!: MetaRepository;
   private iocSync: IoCSyncService | undefined;
   private syncTimer: ReturnType<typeof setInterval> | undefined;
   private syncTask: Promise<unknown> | undefined;
-  private dashboard: RunningDashboard | undefined;
+  private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   private activeWatcher: FsWatcher | undefined;
   private watcherOff: (() => void) | undefined;
   private watcherErrOff: (() => void) | undefined;
@@ -106,6 +112,10 @@ export class Daemon {
     return d;
   }
 
+  private now(): Date {
+    return (this.opts.now ?? (() => new Date()))();
+  }
+
   private async initialize(): Promise<void> {
     if (this.started) throw new Error('Daemon already started');
     this.db = openDb({ path: this.opts.dbPath ?? ':memory:' });
@@ -114,6 +124,7 @@ export class Daemon {
     this.allowlist = new AllowlistRepository(this.db);
     this.iocs = new IoCRepository(this.db);
     this.feedState = new FeedStateRepository(this.db);
+    this.meta = new MetaRepository(this.db);
 
     if (this.opts.iocSync?.enabled) {
       this.iocSync = new IoCSyncService({
@@ -138,28 +149,6 @@ export class Daemon {
     this.processReader = this.opts.processReader ?? createPlatformReader();
     this.notifier = this.opts.notifier ?? createNotifier();
 
-    if (this.opts.startDashboardServer !== false) {
-      this.dashboard = startDashboard(
-        {
-          events: this.events,
-          snoozes: this.snoozes,
-          allowlist: this.allowlist,
-          iocs: this.iocs,
-          feedState: this.feedState,
-          ...(this.opts.now !== undefined ? { now: this.opts.now } : {}),
-          // Plumb the test-event hook so POST /api/test-event runs through
-          // the full pipeline (identify → engine → store → notify).
-          onTestEvent: fsEvent => this.testEvent(fsEvent),
-          // POST /api/iocs/sync triggers a feed pull (503 when sync disabled).
-          ...(this.iocSync !== undefined ? { onSyncIocs: () => this.syncIocs() } : {}),
-        },
-        {
-          port: this.opts.dashboardPort ?? 7878,
-          hostname: this.opts.dashboardHost ?? '127.0.0.1',
-        },
-      );
-    }
-
     const watcher = this.opts.watcher ?? createPlatformWatcher(this.logger);
     this.activeWatcher = watcher;
     this.watcherOff = watcher.onEvent(fsEvent => {
@@ -178,12 +167,24 @@ export class Daemon {
     });
 
     this.started = true;
-    this.logger.info(
-      { dashboard: this.dashboard !== undefined, port: this.opts.dashboardPort ?? 7878 },
-      'tripwired started',
-    );
+    this.logger.info('tripwired started');
 
+    this.startHeartbeat();
     this.startIocSync();
+  }
+
+  /** Write a liveness heartbeat now and on a timer, so readers know we're up. */
+  private startHeartbeat(): void {
+    const beat = (): void => this.meta.recordHeartbeat(this.now());
+    beat();
+    const interval = this.opts.heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_INTERVAL_MS;
+    if (interval > 0) {
+      // Intentionally NOT unref'd: this ref'd timer is what keeps the process
+      // alive for `tripwire daemon run`. Without the old HTTP server's listening
+      // socket, a MockFsWatcher (no native helper installed) would otherwise let
+      // the event loop drain and the daemon exit. stop() clears it.
+      this.heartbeatTimer = setInterval(beat, interval);
+    }
   }
 
   /** Kick an initial IoC feed sync (non-blocking) and schedule periodic refresh. */
@@ -204,9 +205,8 @@ export class Daemon {
   }
 
   /**
-   * Pull the IoC feed into the local store. Exposed for the dashboard
-   * `POST /api/iocs/sync` endpoint and the `tripwire ioc sync` CLI command.
-   * Throws if feed sync is not configured.
+   * Pull the IoC feed into the local store. Exposed for the `tripwire ioc sync`
+   * CLI command path. Throws if feed sync is not configured.
    */
   async syncIocs(): Promise<SyncResult> {
     if (!this.iocSync) throw new Error('IoC feed sync is not enabled');
@@ -215,8 +215,7 @@ export class Daemon {
 
   /**
    * Public test hook: run a synthetic FsEvent through the daemon's full
-   * pipeline. Returns the TripwireEvents that fired so the caller (CLI,
-   * dashboard endpoint) can show the result. The same inflight tracking
+   * pipeline. Returns the TripwireEvents that fired. The same inflight tracking
    * applies, so waitIdle() / stop() block on test events too.
    */
   async testEvent(fsEvent: FsEvent): Promise<TripwireEvent[]> {
@@ -242,7 +241,6 @@ export class Daemon {
       classifierConfig: this.opts.classifierConfig ?? DEFAULT_CLASSIFIER_CONFIG,
       identityEnvKeys: this.opts.identityEnvKeys ?? DEFAULT_IDENTITY_ENV_KEYS,
       logger: this.logger,
-      ...(this.dashboardUrl !== undefined ? { dashboardUrl: this.dashboardUrl } : {}),
       ...(this.opts.minSeverity !== undefined ? { minSeverity: this.opts.minSeverity } : {}),
       ...(this.opts.home !== undefined ? { home: this.opts.home } : {}),
     };
@@ -263,6 +261,7 @@ export class Daemon {
 
   async stop(): Promise<void> {
     if (!this.started) return;
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     if (this.syncTimer) clearInterval(this.syncTimer);
     this.watcherOff?.();
     this.watcherErrOff?.();
@@ -270,16 +269,7 @@ export class Daemon {
     // Let an in-flight feed sync finish before the DB closes under it.
     if (this.syncTask) await this.syncTask.catch(() => {});
     if (this.activeWatcher) await this.activeWatcher.stop();
-    if (this.dashboard) await this.dashboard.close();
     closeDb(this.db);
     this.started = false;
-  }
-
-  /** http://<host>:<port> used for notification click-to-open. */
-  private get dashboardUrl(): string | undefined {
-    if (!this.dashboard) return undefined;
-    const host = this.opts.dashboardHost ?? '127.0.0.1';
-    const port = this.opts.dashboardPort ?? 7878;
-    return `http://${host}:${port}`;
   }
 }

@@ -41,7 +41,7 @@ export class LinuxNotifier implements Notifier {
     if (event.snoozed) return false;
     if (!isAtLeast(event.severity, opts.minSeverity ?? 'medium')) return false;
 
-    const payload = formatEvent(event, opts);
+    const payload = formatEvent(event);
     try {
       await this.exec(this.notifySend, [
         '--app-name=tripwire',

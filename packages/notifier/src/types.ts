@@ -5,14 +5,10 @@ export interface NotificationPayload {
   /** Second-line text, shown smaller on macOS (terminal-notifier `-subtitle`). */
   subtitle?: string;
   body: string;
-  /** URL the notification opens when clicked (where supported). */
-  openUrl?: string;
   severity: Severity;
 }
 
 export interface NotifyOptions {
-  /** Base URL of the local dashboard. Used to build `openUrl`. */
-  dashboardUrl?: string;
   /** Skip notifications below this severity. Default 'medium'. */
   minSeverity?: Severity;
 }

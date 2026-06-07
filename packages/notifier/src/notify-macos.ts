@@ -47,7 +47,7 @@ export class MacosNotifier implements Notifier {
     if (event.snoozed) return false;
     if (!isAtLeast(event.severity, opts.minSeverity ?? 'medium')) return false;
 
-    const payload = formatEvent(event, opts);
+    const payload = formatEvent(event);
 
     if (!this.useOsascriptOnly) {
       // 1. Native Tripwire notifier (proper bundle branding).
@@ -61,7 +61,6 @@ export class MacosNotifier implements Notifier {
             '--id',    event.event_id,
           ];
           if (payload.subtitle) args.push('--subtitle', payload.subtitle);
-          if (payload.openUrl)  args.push('--url', payload.openUrl);
           await this.exec(this.tripwireNotifier, args);
           return true;
         } catch {
@@ -73,7 +72,6 @@ export class MacosNotifier implements Notifier {
       try {
         const args = ['-title', payload.title, '-message', payload.body];
         if (payload.subtitle) args.push('-subtitle', payload.subtitle);
-        if (payload.openUrl)  args.push('-open', payload.openUrl);
         await this.exec(this.terminalNotifier, args);
         return true;
       } catch {

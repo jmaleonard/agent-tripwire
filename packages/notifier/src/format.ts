@@ -1,6 +1,6 @@
 import { basename } from 'node:path';
 import type { AncestryCategory, TripwireEvent } from '@tripwire/shared';
-import type { NotificationPayload, NotifyOptions } from './types.js';
+import type { NotificationPayload } from './types.js';
 
 /**
  * Human-friendly notification payload. Past tense (spec §6.6.1). Compresses
@@ -8,10 +8,7 @@ import type { NotificationPayload, NotifyOptions } from './types.js';
  * (action + path, plus IoC line when relevant). Designed to fit a banner —
  * short, scannable, no rule_id jargon.
  */
-export function formatEvent(
-  event: TripwireEvent,
-  opts: NotifyOptions = {},
-): NotificationPayload {
+export function formatEvent(event: TripwireEvent): NotificationPayload {
   const rule = event.rule_name ?? event.rule_id;
   const title = severityPrefix(event.severity) + rule;
 
@@ -33,16 +30,12 @@ export function formatEvent(
     }
   }
 
-  const payload: NotificationPayload = {
+  return {
     title,
     subtitle,
     body: bodyParts.join(' · '),
     severity: event.severity,
   };
-  if (opts.dashboardUrl !== undefined) {
-    payload.openUrl = `${opts.dashboardUrl.replace(/\/$/, '')}/events/${event.event_id}`;
-  }
-  return payload;
 }
 
 function severityPrefix(severity: TripwireEvent['severity']): string {

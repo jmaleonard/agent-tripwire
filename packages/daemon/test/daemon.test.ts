@@ -71,7 +71,6 @@ describe('Daemon', () => {
       notifier,
       rules: [RULE],
       home: HOME,
-      startDashboardServer: false,
       logger: createLogger({ level: 'silent' }),
     });
   }
@@ -139,17 +138,18 @@ describe('Daemon', () => {
     await expect(daemon['initialize']()).rejects.toThrow(/already started/);
   });
 
-  it("starts without a dashboard when startDashboardServer=false", async () => {
+  it('writes a liveness heartbeat on start', async () => {
     daemon = await startTestDaemon();
-    // Nothing to assert directly besides "didn't crash" — but verify there's
-    // no listener trying to bind: spinning up two daemons in the same test
-    // process without dashboards would fail if we accidentally bound twice.
+    expect(daemon.meta.getHeartbeat()).not.toBeNull();
+  });
+
+  it('multiple daemons can run in the same process (no network surface)', async () => {
+    daemon = await startTestDaemon();
     const second = await Daemon.start({
       watcher: new MockFsWatcher(),
       processReader: new MockProcessReader([]),
       notifier: new MockNotifier(),
       rules: [],
-      startDashboardServer: false,
       logger: createLogger({ level: 'silent' }),
     });
     await second.stop();

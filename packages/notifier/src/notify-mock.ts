@@ -20,7 +20,7 @@ export class MockNotifier implements Notifier {
       this.skipped.push({ event, reason: 'below-threshold' });
       return false;
     }
-    this.sent.push({ event, payload: formatEvent(event, opts) });
+    this.sent.push({ event, payload: formatEvent(event) });
     return true;
   }
 

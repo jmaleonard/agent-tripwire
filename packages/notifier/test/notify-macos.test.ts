@@ -28,10 +28,10 @@ function makeEvent(overrides: Partial<TripwireEvent> = {}): TripwireEvent {
 }
 
 describe('MacosNotifier', () => {
-  it('calls terminal-notifier with title + message + open URL', async () => {
+  it('calls terminal-notifier with title + message', async () => {
     const exec = vi.fn(async () => ({ stdout: '' }));
     const n = new MacosNotifier({ exec });
-    const ok = await n.notify(makeEvent(), { dashboardUrl: 'http://localhost:7878' });
+    const ok = await n.notify(makeEvent());
     expect(ok).toBe(true);
 
     expect(exec).toHaveBeenCalledOnce();
@@ -39,9 +39,6 @@ describe('MacosNotifier', () => {
     expect(cmd).toBe('terminal-notifier');
     expect(args).toContain('-title');
     expect(args).toContain('-message');
-    expect(args).toContain('-open');
-    const openIdx = (args as string[]).indexOf('-open');
-    expect((args as string[])[openIdx + 1]).toBe('http://localhost:7878/events/evt-1');
   });
 
   it('falls back to osascript when terminal-notifier throws', async () => {
@@ -62,7 +59,7 @@ describe('MacosNotifier', () => {
       exec,
       tripwireNotifierPath: '/path/to/TripwireMenubar',
     });
-    expect(await n.notify(makeEvent(), { dashboardUrl: 'http://localhost:7878' })).toBe(true);
+    expect(await n.notify(makeEvent())).toBe(true);
     expect(exec).toHaveBeenCalledOnce();
     const [cmd, args] = exec.mock.calls[0]!;
     expect(cmd).toBe('/path/to/TripwireMenubar');
@@ -71,8 +68,6 @@ describe('MacosNotifier', () => {
     expect(args).toContain('--body');
     expect(args).toContain('--severity');
     expect(args).toContain('--id');
-    expect(args).toContain('--url');
-    expect((args as string[]).includes('http://localhost:7878/events/evt-1')).toBe(true);
   });
 
   it('falls back from Tripwire notifier → terminal-notifier → osascript', async () => {
