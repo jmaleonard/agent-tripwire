@@ -1,13 +1,15 @@
 import Foundation
 
-/// Payload returned by the daemon's `GET /api/summary` endpoint.
-/// The dashboard server hasn't shipped yet; this is the contract it'll honor.
-struct Summary: Codable {
+/// At-a-glance state, read straight from the SQLite store by `StoreReader`.
+/// (Previously decoded from the daemon's `GET /api/summary`; there is no server
+/// anymore.)
+struct Summary {
     let counts: SeverityCounts
     let recent: [RecentEvent]
-    let snoozes: SnoozeState
+    let snooze: SnoozeState
+    let daemonRunning: Bool
 
-    struct SeverityCounts: Codable {
+    struct SeverityCounts {
         let critical: Int
         let high: Int
         let medium: Int
@@ -15,18 +17,16 @@ struct Summary: Codable {
         let info: Int
     }
 
-    struct RecentEvent: Codable {
-        let event_id: String
-        let timestamp: Date
+    struct RecentEvent {
         let severity: String
-        let rule_id: String
-        let rule_name: String?
-        let ancestry_category: String
+        let ruleId: String
+        let ruleName: String?
+        let ancestryCategory: String
     }
 
-    struct SnoozeState: Codable {
+    struct SnoozeState {
         let active: Bool
         let kind: String?
-        let expires_at: Date?
+        let expiresAt: Date?
     }
 }

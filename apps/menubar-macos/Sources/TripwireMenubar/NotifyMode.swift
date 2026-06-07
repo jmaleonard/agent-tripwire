@@ -5,7 +5,6 @@ struct NotifyArgs {
     let title: String
     let subtitle: String?
     let body: String
-    let url: String?
     let id: String?
     let severity: String?
 
@@ -13,7 +12,6 @@ struct NotifyArgs {
         var title = ""
         var subtitle: String? = nil
         var body = ""
-        var url: String? = nil
         var id: String? = nil
         var severity: String? = nil
 
@@ -25,13 +23,12 @@ struct NotifyArgs {
             case "--title":    if let v = next { title = v };    i += 2
             case "--subtitle": if let v = next { subtitle = v }; i += 2
             case "--body":     if let v = next { body = v };     i += 2
-            case "--url":      if let v = next { url = v };      i += 2
             case "--id":       if let v = next { id = v };       i += 2
             case "--severity": if let v = next { severity = v }; i += 2
             default: i += 1
             }
         }
-        return NotifyArgs(title: title, subtitle: subtitle, body: body, url: url, id: id, severity: severity)
+        return NotifyArgs(title: title, subtitle: subtitle, body: body, id: id, severity: severity)
     }
 }
 
@@ -71,10 +68,7 @@ func runNotifyMode(_ args: NotifyArgs) -> Int32 {
             content.subtitle = subtitle
         }
         content.body = args.body
-        var userInfo: [AnyHashable: Any] = [:]
-        if let url = args.url, !url.isEmpty { userInfo["openURL"] = url }
-        if let severity = args.severity { userInfo["severity"] = severity }
-        if !userInfo.isEmpty { content.userInfo = userInfo }
+        if let severity = args.severity { content.userInfo = ["severity": severity] }
         content.sound = .default
 
         let request = UNNotificationRequest(

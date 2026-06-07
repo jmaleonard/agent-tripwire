@@ -7,7 +7,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "TripwireMenubar",
-            path: "Sources/TripwireMenubar"
+            path: "Sources/TripwireMenubar",
+            linkerSettings: [.linkedLibrary("sqlite3")]
         )
     ]
 )

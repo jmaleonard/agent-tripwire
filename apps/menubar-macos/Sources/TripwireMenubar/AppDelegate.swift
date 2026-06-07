@@ -5,7 +5,6 @@ import UserNotifications
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     private var statusItem: NSStatusItem!
     private var pollTimer: Timer?
-    private let client = DaemonClient(baseURL: URL(string: "http://localhost:7878")!)
     private var currentState: MenuState = .loading
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -14,15 +13,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             button.image = symbol(name: "shield", description: "Tripwire")
             button.imagePosition = .imageOnly
         }
-        // Own the notification center so clicks on the daemon's --notify
-        // banners route here and we can openURL from userInfo.
+        // Own the notification center so the daemon's --notify banners present
+        // even while we're the foreground (LSUIElement) app.
         UNUserNotificationCenter.current().delegate = self
-        // Request notification authorization now while we have a UI context.
-        // Bundle-level grant is then shared by --notify subprocess invocations,
-        // which can't prompt the user themselves (no LSUI context).
+        // Request authorization now, while we have a UI context. The grant is
+        // shared by --notify subprocess invocations, which can't prompt.
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
-            // Ignored — user denial just means no native banners; the
-            // dashboard still logs everything.
+            // Denial just means no native banners; the store still records everything.
         }
         rebuildMenu()
         startPolling()
@@ -30,8 +27,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
     // MARK: - UNUserNotificationCenterDelegate
 
-    /// Show banners even when the app is "in foreground" (LSUIElement still
-    /// counts as foreground for the notification center).
+    /// Show banners even when we're "in foreground" (LSUIElement counts as
+    /// foreground for the notification center).
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
@@ -42,21 +39,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         } else {
             completionHandler([.alert, .sound])
         }
-    }
-
-    /// User clicked the banner. If the --notify call stashed an openURL in
-    /// userInfo, open it in the browser.
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
-        defer { completionHandler() }
-        let userInfo = response.notification.request.content.userInfo
-        guard let urlString = userInfo["openURL"] as? String,
-              let url = URL(string: urlString)
-        else { return }
-        NSWorkspace.shared.open(url)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -70,21 +52,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         poll()
     }
 
+    /// Read the SQLite store off the main thread, then update the UI.
     private func poll() {
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                let summary = try await self.client.fetchSummary()
-                await MainActor.run {
-                    self.currentState = .ok(summary)
-                    self.rebuildMenu()
-                }
-            } catch {
-                await MainActor.run {
-                    // Coalesce all failure modes (refused, timeout, decode) into one state.
-                    self.currentState = .daemonDown
-                    self.rebuildMenu()
-                }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let state = StoreReader.read()
+            DispatchQueue.main.async {
+                self?.currentState = state
+                self?.rebuildMenu()
             }
         }
     }
@@ -99,15 +73,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         switch currentState {
         case .loading:
             button.image = symbol(name: "shield", description: "Tripwire (loading)")
-        case .daemonDown:
-            button.image = symbol(name: "shield.slash", description: "Tripwire (daemon not running)")
+        case .noStore:
+            button.image = symbol(name: "shield.slash", description: "Tripwire (not set up)")
         case .ok(let summary):
             button.image = pickIcon(summary: summary)
         }
     }
 
     private func pickIcon(summary: Summary) -> NSImage? {
-        if summary.snoozes.active {
+        if !summary.daemonRunning {
+            return symbol(name: "shield.slash", description: "Tripwire (daemon not running)")
+        }
+        if summary.snooze.active {
             return symbol(name: "moon.zzz", description: "Tripwire (snoozed)")
         }
         if summary.counts.critical > 0 {
@@ -127,27 +104,53 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
     // MARK: - Menu actions
 
-    @objc func openDashboard(_ sender: Any) {
-        if let url = URL(string: "http://localhost:7878") {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    @objc func openEvent(_ sender: NSMenuItem) {
-        guard let id = sender.representedObject as? String,
-              let url = URL(string: "http://localhost:7878/events/\(id)") else { return }
-        NSWorkspace.shared.open(url)
+    /// Open the user's Terminal and launch the TUI (the inspection surface that
+    /// replaced the web dashboard). Best-effort: targets Terminal.app.
+    @objc func openTui(_ sender: Any) {
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "tripwire tui"
+        end tell
+        """
+        runProcess("/usr/bin/osascript", ["-e", script])
     }
 
     @objc func clearSnoozes(_ sender: Any) {
-        Task { [weak self] in
-            guard let self else { return }
-            try? await self.client.clearSnoozes()
-            self.poll()
+        // Route writes through the CLI so the store has a single writer path.
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.runTripwire(["snooze", "clear"])?.waitUntilExit()
+            DispatchQueue.main.async { self?.poll() }
         }
     }
 
     @objc func quit(_ sender: Any) {
         NSApp.terminate(nil)
+    }
+
+    // MARK: - Subprocess helpers
+
+    @discardableResult
+    private func runTripwire(_ args: [String]) -> Process? {
+        // GUI apps don't inherit the login-shell PATH, so resolve the brew paths.
+        let candidates = ["/opt/homebrew/bin/tripwire", "/usr/local/bin/tripwire"]
+        let bin = candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
+        if let bin {
+            return runProcess(bin, args)
+        }
+        return runProcess("/usr/bin/env", ["tripwire"] + args)
+    }
+
+    @discardableResult
+    private func runProcess(_ launchPath: String, _ args: [String]) -> Process? {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: launchPath)
+        task.arguments = args
+        do {
+            try task.run()
+            return task
+        } catch {
+            return nil
+        }
     }
 }
