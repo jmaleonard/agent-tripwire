@@ -11,7 +11,7 @@ describe('openDb', () => {
       .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
       .all() as Array<{ name: string }>).map(r => r.name);
     expect(names).toEqual(
-      expect.arrayContaining(['events', 'snoozes', 'allowlist', 'iocs', '_migrations']),
+      expect.arrayContaining(['events', 'snoozes', 'allowlist', 'iocs', 'meta', '_migrations']),
     );
     db.close();
   });
@@ -19,7 +19,7 @@ describe('openDb', () => {
   it('records migrations in _migrations', () => {
     const db = openDb({ path: ':memory:' });
     const rows = db.prepare('SELECT name FROM _migrations').all() as Array<{ name: string }>;
-    expect(rows.map(r => r.name)).toEqual(['001_initial', '002_feed_state']);
+    expect(rows.map(r => r.name)).toEqual(['001_initial', '002_feed_state', '003_meta']);
     db.close();
   });
 
@@ -48,7 +48,7 @@ describe('openDb', () => {
       openDb({ path: dbPath }).close();
       const db2 = openDb({ path: dbPath });
       const rows = db2.prepare('SELECT name FROM _migrations').all() as Array<{ name: string }>;
-      expect(rows.map(r => r.name)).toEqual(['001_initial', '002_feed_state']);
+      expect(rows.map(r => r.name)).toEqual(['001_initial', '002_feed_state', '003_meta']);
       db2.close();
     });
 
