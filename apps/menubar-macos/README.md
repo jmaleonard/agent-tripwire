@@ -4,8 +4,7 @@ A tiny native macOS menu-bar app that mirrors the daemon's state.
 
 - `LSUIElement = true` — no Dock icon, no main window.
 - One `NSStatusItem` with severity-aware SF Symbol.
-- Reads `~/.tripwire/events.db` directly (system SQLite3) every 5 seconds — no
-  network, no localhost server.
+- Reads `~/.tripwire/events.db` directly (system SQLite3) every 5 seconds.
 - Click → dropdown menu with severity counts (last 24h), snooze status, last 5
   events, and "Open Tripwire TUI…".
 

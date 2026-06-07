@@ -56,10 +56,9 @@ fs watcher → identify (walk process tree) → rules engine (+ malware feed) �
 
 A native Rust helper delivers kernel filesystem events; the daemon correlates
 them to a PID, runs them through your rules, enriches with the malware feed, and
-writes everything to a local SQLite store. There's **no server and no open
-port** — the `tripwire` CLI, the `tripwire tui` inspector, and the macOS
-menu-bar app all read that store directly. Rules are YAML and yours to edit
-([rule guide](./spec/docs/rules.md)).
+writes everything to a local SQLite store that the `tripwire` CLI, the
+`tripwire tui` inspector, and the macOS menu-bar app read directly. Rules are
+YAML and yours to edit ([rule guide](./spec/docs/rules.md)).
 
 ## Status
 

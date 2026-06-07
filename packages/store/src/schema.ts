@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS feed_state (
 
 // Migration 003: generic key/value store. Currently holds the daemon liveness
 // heartbeat (key 'daemon_heartbeat') so the CLI, TUI, and menu-bar app can tell
-// whether the daemon is running by reading the DB — no localhost server needed.
+// whether the daemon is running by reading the DB.
 export const META_SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta (
     key    TEXT PRIMARY KEY,

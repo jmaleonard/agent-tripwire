@@ -19,21 +19,21 @@ Reasons:
 
 The new positioning: tripwire is the runtime layer Aikido Safe Chain doesn't have. Recommended to be installed *alongside* it, not instead of.
 
-> **Update (2026-06): no HTTP server.** The local **web dashboard** described in
-> §6.6 and §6.12 has been **removed**. Inspection is now `tripwire tui` (an Ink
-> terminal UI) plus the macOS menu-bar app, both reading the SQLite store at
-> `~/.tripwire/events.db` directly. SQLite in WAL mode is the only IPC between
-> the daemon, CLI, TUI, and menu-bar — nothing binds a localhost port. Daemon
-> liveness is a heartbeat row in the store (`meta.daemon_heartbeat`), not an HTTP
-> ping. Wherever this spec says "dashboard" / "localhost:7878" / "Hono", read
-> "the store + the TUI/menu-bar that read it"; the `notifier.surfaces.dashboard`
-> and top-level `dashboard:` config blocks below are obsolete.
+> **Update (2026-06): dashboard replaced by a TUI.** The local **web dashboard**
+> described in §6.6 and §6.12 has been **removed**. Inspection is now
+> `tripwire tui` (an Ink terminal UI) plus the macOS menu-bar app, both reading
+> the SQLite store at `~/.tripwire/events.db` directly. SQLite (WAL) is the IPC
+> between the daemon, CLI, TUI, and menu-bar; daemon liveness is a heartbeat row
+> in the store (`meta.daemon_heartbeat`). Wherever this spec says "dashboard" /
+> "localhost:7878" / "Hono", read "the store + the TUI/menu-bar that read it";
+> the `notifier.surfaces.dashboard` and top-level `dashboard:` config blocks
+> below are obsolete.
 
 ## 1. Purpose
 
 A **detection-only notifier daemon** for developer workstations that catches malicious code attempting to read sensitive files, modify agent/IDE configs, or exfiltrate credentials — with a focus on the wave of npm/PyPI supply-chain attacks targeting AI coding agents.
 
-The daemon watches a curated set of high-value paths at runtime, attributes every event to a process (and its agent/package-manager ancestry), and emits a past-tense notification when interesting things happen. It does **not** wrap your package manager, hook your install scripts, or block any operation. Findings stream to a local SQLite event store, inspected via the `tripwire` CLI, the `tripwire tui` terminal UI, and a macOS menu-bar app that all read it directly — no server — with optional fleet aggregation.
+The daemon watches a curated set of high-value paths at runtime, attributes every event to a process (and its agent/package-manager ancestry), and emits a past-tense notification when interesting things happen. It does **not** wrap your package manager, hook your install scripts, or block any operation. Findings stream to a local SQLite event store, inspected via the `tripwire` CLI, the `tripwire tui` terminal UI, and a macOS menu-bar app that all read it directly, with optional fleet aggregation.
 
 This is the runtime layer that install-time blockers (Aikido Safe Chain, Socket Firewall) deliberately do not cover. The product is positioned to be installed *alongside* them.
 
@@ -117,7 +117,7 @@ We are **not** defending against:
 | `notifier/` | P1 | Native OS notification surfaces |
 | `snooze/` | P1 | Snooze state + duration management |
 | `store/` | P1 | SQLite-backed event store + query API |
-| ~~`dashboard/`~~ | — | **Removed.** Replaced by `tripwire tui` (Ink) + the menu-bar app, both reading the store directly — no server. |
+| ~~`dashboard/`~~ | — | **Removed.** Replaced by `tripwire tui` (Ink) + the menu-bar app, which read the store directly. |
 | `cli/` | P1 | User-facing `tripwire` CLI (status, snooze, allowlist, doctor). **Not shims.** |
 | `net-correlator/` | P2 | eBPF-based read↔egress correlation |
 | `aikido-bridge/` | P6 | Read Aikido Safe Chain's local logs and correlate |
@@ -706,8 +706,8 @@ CREATE TABLE iocs (
 > **Superseded** (see the update note near the top of this spec). The HTTP
 > dashboard described in this section was removed. Inspection is now
 > `tripwire tui` — an Ink terminal UI reading the SQLite store directly — plus
-> the macOS menu-bar app. No server, no open port. The route/endpoint list below
-> is retained only as historical reference for the data each view needs.
+> the macOS menu-bar app. The route/endpoint list below is retained only as
+> historical reference for the data each view needs.
 
 Originally: single-page app served by a Hono server on `http://localhost:7878` (port configurable).
 

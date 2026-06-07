@@ -1,7 +1,7 @@
 // Daemon demo: spins up tripwired with MockFsWatcher + MockProcessReader,
 // emits a synthetic credential-read event, prints the stored result, and exits.
 // Uses an in-memory store, so it's self-contained (it doesn't touch your real
-// ~/.tripwire). There's no server — inspection in real use is `tripwire tui`.
+// ~/.tripwire). In real use, inspect events with `tripwire tui`.
 //
 // What you should see:
 //   - A macOS notification banner: "HIGH — AWS credentials file read"
@@ -34,7 +34,7 @@ const reader = new MockProcessReader([
 
 const daemon = await Daemon.start({ watcher, processReader: reader });
 
-console.log('tripwired up (in-memory store, no server).');
+console.log('tripwired up (in-memory store).');
 console.log('Emitting synthetic FsEvent: ~/.aws/credentials read by node (subprocess of claude)…\n');
 
 watcher.emit({

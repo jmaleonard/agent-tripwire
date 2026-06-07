@@ -34,7 +34,7 @@ Tripwire is built for that gap. It watches the things attackers want — your SS
 
 **Snooze.** Two flavors: "shut up about *this* combo" and "shut up about *everything* for a while." Hard 24-hour ceiling. The store log is never silenced — only attention is.
 
-**Local TUI.** Everything is logged to SQLite. `tripwire tui` is a terminal inspector that shows the timeline, lets you investigate evidence, and manages allowlists and snoozes — reading the store directly, with no server and no open port.
+**Local TUI.** Everything is logged to SQLite. `tripwire tui` is a terminal inspector that shows the timeline, lets you investigate evidence, and manages allowlists and snoozes, reading the store directly.
 
 **IoC enrichment.** A daily seeder pulls public IoC feeds (Aikido, OSV, GitHub Advisory) so when a flagged package fires a runtime rule, the notification tells you *which campaign* the package is associated with.
 

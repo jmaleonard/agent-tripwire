@@ -91,9 +91,8 @@ Overrides: `TRIPWIRE_FEED_URL` (manifest URL), `TRIPWIRE_NO_FEED_SYNC=1`
 ## Public report — top offenders (GitHub Pages)
 
 A public page ranks the feed's "top offenders" (most recently flagged, biggest
-campaigns, highest-confidence/multi-source). Same GitHub-native, no-AWS pattern
-as the feed: a job generates a static page and deploys it to GitHub Pages — no
-DB, no server.
+campaigns, highest-confidence/multi-source). A GitHub Action generates a static
+page and deploys it to GitHub Pages, the same way the feed itself publishes.
 
 - Ranking + HTML live in `@tripwire/feeds` (`computeTopOffenders` /
   `renderTopOffendersHtml`, unit-tested). `scripts/build-site.mjs` is the IO:

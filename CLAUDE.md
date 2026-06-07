@@ -20,10 +20,10 @@ heartbeat) · `cli` (`tripwire …`, incl. `tripwire tui`) · `lambda-seeder`
 (legacy AWS, being retired).
 `apps/menubar-macos` (Swift, reads the store directly). `helpers/tripwire-watcher` (Rust).
 
-**No HTTP server / open port.** SQLite (`~/.tripwire/events.db`, WAL) is the IPC:
-the daemon writes events + a `daemon_heartbeat` row (store migration 003 `meta`);
-the CLI, `tripwire tui` (Ink), and the menu-bar app read it directly. The old
-`@tripwire/dashboard` (Hono on :7878) is removed.
+**SQLite is the IPC.** `~/.tripwire/events.db` (WAL): the daemon writes events +
+a `daemon_heartbeat` row (store migration 003 `meta`); the CLI, `tripwire tui`
+(Ink), and the menu-bar app read it directly. The old `@tripwire/dashboard`
+(Hono on :7878) is removed.
 
 ## Dev commands — USE pnpm, NOT npm
 
@@ -87,8 +87,8 @@ Format/details: `spec/docs/feed.md`.
 ## Recently landed (on `main`)
 
 - `dawnika` → `jmaleonard` everywhere (bundle IDs `io.github.jmaleonard.*`, docs).
-- **No HTTP server.** Removed `@tripwire/dashboard`; SQLite (WAL) is the IPC. The
-  CLI, `tripwire tui` (Ink), and menu-bar read the store directly; the daemon
-  writes a `meta.daemon_heartbeat` row for liveness.
+- Removed `@tripwire/dashboard`; SQLite (WAL) is the IPC — the CLI, `tripwire tui`
+  (Ink), and menu-bar read the store directly; the daemon writes a
+  `meta.daemon_heartbeat` row for liveness.
 - Linux **fanotify** watcher with kernel-reported PID (upstream; merged here).
 - `feat/github-feed-sync` merged to `main` and pushed to S3.
