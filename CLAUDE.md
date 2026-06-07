@@ -12,12 +12,18 @@ packages. See `README.md` for the pitch, `spec/` for the full spec.
 
 ## Monorepo (pnpm workspaces, Node 22, TypeScript ESM)
 
-`packages/`: `shared` (types) · `store` (SQLite) · `feeds` (IoC sources + feed
-delta/manifest/publish logic) · `watcher` (native Rust helper + mock) ·
-`identity` (process-tree) · `engine` (rules + IoC enrichment) · `notifier` ·
-`dashboard` (Hono on :7878) · `daemon` (ties it together) · `cli` (`tripwire …`) ·
-`lambda-seeder` (legacy AWS, being retired).
-`apps/menubar-macos` (Swift). `helpers/tripwire-watcher` (Rust).
+`packages/`: `shared` (types) · `store` (SQLite + `computeSummary` + heartbeat) ·
+`feeds` (IoC sources + feed delta/manifest/publish logic) · `watcher` (native
+Rust helper + mock) · `identity` (process-tree) · `engine` (rules + IoC
+enrichment) · `notifier` · `daemon` (ties it together; writes a liveness
+heartbeat) · `cli` (`tripwire …`, incl. `tripwire tui`) · `lambda-seeder`
+(legacy AWS, being retired).
+`apps/menubar-macos` (Swift, reads the store directly). `helpers/tripwire-watcher` (Rust).
+
+**No HTTP server / open port.** SQLite (`~/.tripwire/events.db`, WAL) is the IPC:
+the daemon writes events + a `daemon_heartbeat` row (store migration 003 `meta`);
+the CLI, `tripwire tui` (Ink), and the menu-bar app read it directly. The old
+`@tripwire/dashboard` (Hono on :7878) is removed.
 
 ## Dev commands — USE pnpm, NOT npm
 
@@ -25,7 +31,7 @@ delta/manifest/publish logic) · `watcher` (native Rust helper + mock) ·
 pnpm install        # NOT `npm install` — npm leaves a stray package-lock.json
 pnpm build          # tsc across packages; required before typecheck
 pnpm typecheck      # needs a prior `pnpm build` (project refs / .d.ts outputs)
-pnpm test           # vitest; ~336 tests
+pnpm test           # vitest; ~303 tests
 ```
 
 If tests fail with "Failed to load url better-sqlite3/yaml/@aws-sdk", someone ran
@@ -39,8 +45,9 @@ the feed). Now there's a full round-trip:
 - **Client sync** — `packages/daemon/src/ioc-sync.ts` `IoCSyncService`: conditional
   GET (ETag) → `planSync` (full vs delta) → SHA-256-verify → apply
   (`replaceAll`/`upsert`/`remove`). Runs on daemon startup + every 6h; coalesces
-  concurrent runs. `tripwire ioc sync` / `POST /api/iocs/sync` force it.
-  `feed_state` table (store migration 002) is the bookmark.
+  concurrent runs. `tripwire ioc sync` forces it standalone (no running daemon —
+  via `runIocSync` in `@tripwire/daemon`). `feed_state` table (migration 002) is
+  the bookmark.
 - **Delta feed** — `packages/feeds/src/{delta,manifest,publish}.ts`: `computeDelta`,
   `planPublish`, `planSync`. Daily deltas chain among themselves; `full` (=
   latest snapshot) is the fallback for empty/far-behind clients.

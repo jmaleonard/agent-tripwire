@@ -19,11 +19,21 @@ Reasons:
 
 The new positioning: tripwire is the runtime layer Aikido Safe Chain doesn't have. Recommended to be installed *alongside* it, not instead of.
 
+> **Update (2026-06): no HTTP server.** The local **web dashboard** described in
+> §6.6 and §6.12 has been **removed**. Inspection is now `tripwire tui` (an Ink
+> terminal UI) plus the macOS menu-bar app, both reading the SQLite store at
+> `~/.tripwire/events.db` directly. SQLite in WAL mode is the only IPC between
+> the daemon, CLI, TUI, and menu-bar — nothing binds a localhost port. Daemon
+> liveness is a heartbeat row in the store (`meta.daemon_heartbeat`), not an HTTP
+> ping. Wherever this spec says "dashboard" / "localhost:7878" / "Hono", read
+> "the store + the TUI/menu-bar that read it"; the `notifier.surfaces.dashboard`
+> and top-level `dashboard:` config blocks below are obsolete.
+
 ## 1. Purpose
 
 A **detection-only notifier daemon** for developer workstations that catches malicious code attempting to read sensitive files, modify agent/IDE configs, or exfiltrate credentials — with a focus on the wave of npm/PyPI supply-chain attacks targeting AI coding agents.
 
-The daemon watches a curated set of high-value paths at runtime, attributes every event to a process (and its agent/package-manager ancestry), and emits a past-tense notification when interesting things happen. It does **not** wrap your package manager, hook your install scripts, or block any operation. Findings stream to a local event store with a web dashboard, with optional fleet aggregation.
+The daemon watches a curated set of high-value paths at runtime, attributes every event to a process (and its agent/package-manager ancestry), and emits a past-tense notification when interesting things happen. It does **not** wrap your package manager, hook your install scripts, or block any operation. Findings stream to a local SQLite event store, inspected via the `tripwire` CLI, the `tripwire tui` terminal UI, and a macOS menu-bar app that all read it directly — no server — with optional fleet aggregation.
 
 This is the runtime layer that install-time blockers (Aikido Safe Chain, Socket Firewall) deliberately do not cover. The product is positioned to be installed *alongside* them.
 
@@ -81,8 +91,8 @@ We are **not** defending against:
 │        │                     │                       │          │
 │        ▼                     ▼                       ▼          │
 │  ┌────────────┐      ┌──────────────┐      ┌──────────────────┐ │
-│  │ Notifier   │      │ Snooze       │      │ Local Dashboard  │ │
-│  │ native OS  │      │ subsystem    │      │ localhost:7878   │ │
+│  │ Notifier   │      │ Snooze       │      │ TUI + menu-bar   │ │
+│  │ native OS  │      │ subsystem    │      │ read the store   │ │
 │  │ + tray(P2) │      │              │      │                  │ │
 │  └────────────┘      └──────────────┘      └──────────────────┘ │
 │                                                                 │
@@ -107,7 +117,7 @@ We are **not** defending against:
 | `notifier/` | P1 | Native OS notification surfaces |
 | `snooze/` | P1 | Snooze state + duration management |
 | `store/` | P1 | SQLite-backed event store + query API |
-| `dashboard/` | P1 | Local web UI on `localhost` |
+| ~~`dashboard/`~~ | — | **Removed.** Replaced by `tripwire tui` (Ink) + the menu-bar app, both reading the store directly — no server. |
 | `cli/` | P1 | User-facing `tripwire` CLI (status, snooze, allowlist, doctor). **Not shims.** |
 | `net-correlator/` | P2 | eBPF-based read↔egress correlation |
 | `aikido-bridge/` | P6 | Read Aikido Safe Chain's local logs and correlate |
@@ -691,9 +701,15 @@ CREATE TABLE iocs (
 );
 ```
 
-### 6.12 Dashboard
+### 6.12 Inspection UI (TUI) — supersedes the dashboard
 
-Single-page app served by a Hono server on `http://localhost:7878` (port configurable).
+> **Superseded** (see the update note near the top of this spec). The HTTP
+> dashboard described in this section was removed. Inspection is now
+> `tripwire tui` — an Ink terminal UI reading the SQLite store directly — plus
+> the macOS menu-bar app. No server, no open port. The route/endpoint list below
+> is retained only as historical reference for the data each view needs.
+
+Originally: single-page app served by a Hono server on `http://localhost:7878` (port configurable).
 
 **Routes:**
 - `GET /` — UI shell.
@@ -806,8 +822,7 @@ Unchanged from v0.1:
 - **Language:** TypeScript, Node ≥ 22 LTS.
 - **Build:** pnpm workspaces, `tsup`.
 - **Database:** SQLite via `better-sqlite3`.
-- **Web server:** Hono.
-- **Frontend:** Preact + Vite + Tailwind.
+- **Inspection UI:** `tripwire tui` — Ink + React, reading the SQLite store directly. No web server.
 - **YAML rules:** `yaml` package, validated with `ajv` against `rule.schema.json`.
 - **Logging:** `pino`.
 - **Testing:** `vitest`, integration tests against fixture process trees and fixture filesystem events.
@@ -931,7 +946,7 @@ Build in this order, each as its own PR series:
 7. `notifier/` package — native OS surfaces; mock sink for tests.
 8. `snooze/` package — store + presets + indicator (shell banner fallback).
 9. `cli/` package — `tripwire` CLI: setup, doctor, snooze, allowlist, feeds, status.
-10. `dashboard/` package — server + minimal Preact UI.
+10. `tripwire tui` — Ink terminal UI over the store (replaces the web dashboard).
 11. End-to-end integration tests with synthetic ancestries.
 12. Installer + first-run wizard + macOS notification permission flow.
 13. Documentation: README, INSTALL, rules, contributing, community-feed.

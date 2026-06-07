@@ -25,7 +25,7 @@ The monorepo is organized as pnpm workspaces. See [agent-tripwire-spec.md §6.2]
 
 | Package | Purpose |
 |---------|---------|
-| `packages/cli` | User-facing `tripwire` CLI (setup, doctor, snooze, allowlist, status). **Not package-manager shims.** |
+| `packages/cli` | User-facing `tripwire` CLI (setup, doctor, snooze, allowlist, status, `tui`). **Not package-manager shims.** |
 | `packages/watcher` | Filesystem watcher (`fanotify` on Linux, `fsevents` on macOS). |
 | `packages/identity` | Process tree walker + agent / package-manager classifier. |
 | `packages/engine` | Rule evaluation, allowlist match, snooze check, IoC enrichment. |
@@ -33,8 +33,7 @@ The monorepo is organized as pnpm workspaces. See [agent-tripwire-spec.md §6.2]
 | `packages/snooze` | Snooze state + duration management. |
 | `packages/feeds` | IoC seeder (Phase 0). |
 | `packages/rules` | YAML rule definitions + bundled IoC snapshot + default allowlist. |
-| `packages/store` | SQLite event store. |
-| `packages/dashboard` | Local web UI. |
+| `packages/store` | SQLite event store (+ summary + liveness heartbeat). |
 | `packages/shared` | Cross-package types and utilities. |
 
 Each package builds independently. Most changes touch one or two.
@@ -131,7 +130,7 @@ The bundled default allowlist is the single biggest determinant of whether tripw
 
 Concrete ways to help:
 
-- **Run tripwire on your own workstation for a week.** Take note of every event in the dashboard that's clearly normal-behavior. Open a PR adding those `(rule, ancestry)` pairs to `packages/rules/default-allowlist.yaml`, with reasoning.
+- **Run tripwire on your own workstation for a week.** Take note of every event in the TUI (`tripwire tui`) that's clearly normal-behavior. Open a PR adding those `(rule, ancestry)` pairs to `packages/rules/default-allowlist.yaml`, with reasoning.
 - **Reproduce a normal workflow** not in our corpus (a less-common editor, a specific build tool, a specific cloud SDK), capture the events, and add the workflow to `test/fixtures/allowlist-corpus/` so CI keeps it covered going forward.
 - **Audit existing allowlist entries** against changing ecosystem behavior — every quarter or so, an entry becomes wrong (a tool changed where it stores credentials, an agent runtime changed how it spawns subprocesses).
 

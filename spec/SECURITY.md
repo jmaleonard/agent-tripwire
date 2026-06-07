@@ -7,10 +7,10 @@ agent-tripwire is a security tool. We take security in our own supply chain and 
 If you have found a vulnerability in tripwire itself — for example:
 
 - A way to evade detection (process-tree manipulation, race conditions in the watcher, classifier bypass).
-- A way to exploit the daemon via malformed input (crafted filesystem events, IoC payloads, dashboard requests).
+- A way to exploit the daemon via malformed input (crafted filesystem events, IoC payloads, crafted store rows).
 - A way to escalate privileges via the daemon, the fanotify helper binary, or the IoC feed pipeline.
 - A way to poison the IoC feed or rule pack distribution.
-- A way to exfiltrate user data via the dashboard or community feed plumbing.
+- A way to exfiltrate user data via the CLI/TUI or community feed plumbing.
 
 **Please do not open a public issue.** Use GitHub's [private vulnerability reporting](https://github.com/jmaleonard/agent-tripwire/security/advisories/new) (the "Report a vulnerability" button on the repo's Security tab) and include:
 
@@ -36,7 +36,7 @@ In scope:
 - The detection engine, allowlist, snooze, and IoC enrichment.
 - The notification subsystem.
 - The IoC seeder and bundled feed integrations.
-- The local dashboard.
+- The local CLI, TUI, and menu-bar app (all read the SQLite store directly).
 - The community IoC feed infrastructure (`feed.tripwire.jmaleonard.dev`), including the re-verification worker and its sandbox.
 - The release distribution pipeline (`jmaleonard.github.io/agent-tripwire`, signed manifests, npm package).
 - The bundled rule pack, IoC snapshot, and default allowlist.
@@ -70,7 +70,7 @@ Tripwire is a **detection-only notifier**. It tells you what happened. It does n
 - Attributing that event to a process and its ancestry, including agent / package-manager classification.
 - Enriching the event with IoC attribution if the responsible package is on a known-bad list.
 - Logging every event to a local SQLite store regardless of snooze state.
-- Not silencing dashboard logs under any snooze condition.
+- Not silencing the store log under any snooze condition.
 - Not transmitting any data off the machine unless you have explicitly opted in to the community feed, in which case only the package-centric payload described in [docs/community-feed.md](./docs/community-feed.md) is sent.
 
 **Tripwire does NOT commit to:**

@@ -169,7 +169,7 @@ describe('handleFsEvent', () => {
     expect(out).toEqual([]);
   });
 
-  it('notifier failure does NOT prevent storage (dashboard log is the source of truth)', async () => {
+  it('notifier failure does NOT prevent storage (the store is the source of truth)', async () => {
     const flakyNotifier = {
       notify: async () => {
         throw new Error('macOS notifications disabled');

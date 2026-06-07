@@ -5,7 +5,7 @@ agent-tripwire runs on macOS and Linux. Windows support is on the roadmap (Phase
 ## Requirements
 
 - **Operating system**: macOS 13+ or Linux (any modern distro with glibc ≥ 2.31).
-- **Node.js**: ≥ 22 LTS (for the daemon and dashboard).
+- **Node.js**: ≥ 22 LTS (for the daemon, CLI, and TUI).
 - **Shell**: bash, zsh, or fish.
 - **Disk**: ~100 MB for the tool plus a small SQLite store.
 - **Permissions**: Phase 1 runs entirely as your user. No root needed.
@@ -81,10 +81,10 @@ After installation, `tripwire setup` runs interactively:
 1. Confirms the daemon started successfully.
 2. **Prompts for notification permission** (see platform sections below).
 3. Pulls the latest IoC feeds (Aikido, OSV, GitHub Advisory). First fetch is ~50 MB; subsequent updates are incremental.
-4. Activates the **60-minute first-run quiet period**: dashboard logs everything, but native notifications stay off so you can tune your allowlist without being blasted.
+4. Activates the **60-minute first-run quiet period**: the store records everything, but native notifications stay off so you can tune your allowlist without being blasted.
 5. Asks whether to opt in to the community IoC feed (default: **no**, prominent disclosure — see [community feed spec](./docs/community-feed.md)).
 6. Writes `~/.tripwire/config.yaml` with your choices.
-7. Opens the dashboard at `http://localhost:7878`.
+7. Prints next steps — run `tripwire tui` to watch events live in your terminal.
 
 Re-run `tripwire setup` to change settings, or edit `~/.tripwire/config.yaml` directly.
 
@@ -107,7 +107,7 @@ If notifications are silently dropped, this is almost always the cause. `tripwir
 
 - GNOME, KDE, XFCE, Cinnamon, MATE, Budgie: built-in. Nothing to do.
 - i3, sway, river, Hyprland: install `dunst` or `mako`, run it as a systemd user service.
-- Headless (servers, plain WSL2): notifications don't work. Disable the native surface in config; dashboard remains the source of truth.
+- Headless (servers, plain WSL2): notifications don't work. Disable the native surface in config; `tripwire status` / `tripwire tui` remain the source of truth.
 
 Check with:
 
@@ -130,7 +130,6 @@ Checks:
 - Event store is writable.
 - Notification permission is granted (macOS) / a notification daemon is reachable (Linux).
 - IoC feeds were refreshed in the last 48 hours.
-- Dashboard port is available.
 - The fanotify helper (Linux) or fsevents subsystem (macOS) is active.
 
 Fire an end-to-end test event:
@@ -139,7 +138,7 @@ Fire an end-to-end test event:
 tripwire test-event
 # Writes a synthetic event into the store, fires the notifier.
 # You should see a desktop notification labeled "tripwire test event"
-# and the event in the dashboard timeline.
+# and the event in `tripwire tui` (or `tripwire status`).
 ```
 
 ## Uninstall
@@ -173,7 +172,7 @@ systemctl --user status tripwired                       # Linux
 tail -f ~/.tripwire/tripwire.log
 ```
 
-### No notifications, but dashboard shows events
+### No notifications, but events still show up
 
 Almost always a permission problem:
 
@@ -212,11 +211,11 @@ feeds:
 
 The bundled snapshot is updated with each tripwire release.
 
-### Dashboard won't start
+### `tripwire tui` shows nothing / "needs an interactive terminal"
 
 ```bash
-tripwire dashboard --port 8080
-lsof -i :7878
+tripwire status          # non-interactive view; works anywhere (pipes, CI)
+tripwire tui             # the live UI; requires a real TTY
 ```
 
 ### Snooze indicator banner in every new shell is annoying
@@ -275,7 +274,7 @@ feeds:
 Works as Linux. Caveats:
 
 - Filesystem events across the Windows↔Linux boundary are unreliable; tripwire only watches paths inside the WSL filesystem.
-- No GUI session means no notification daemon by default. Either install `dunst` and forward to Windows (complex) or disable the native notification surface and rely on the dashboard.
+- No GUI session means no notification daemon by default. Either install `dunst` and forward to Windows (complex) or disable the native notification surface and rely on `tripwire status` / `tripwire tui`.
 
 ## Upgrading
 

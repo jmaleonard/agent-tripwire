@@ -40,7 +40,7 @@ tripwire status                 # recent events + counts + snooze state
 tripwire snooze add 1h          # going to do noisy stuff — hush for an hour
 tripwire allowlist add <rule> --process /usr/bin/aws   # bless a known-good actor
 tripwire ioc <package>          # is this package on the malware list?
-tripwire dashboard              # open the web UI on localhost:7878
+tripwire tui                    # live event inspector, right in your terminal
 ```
 
 A native macOS **menu-bar app** ships too: severity-aware icon, last-24h count,
@@ -49,12 +49,16 @@ one-click snooze, and the last 5 events.
 ## How it works
 
 ```
-fs watcher → identify (walk process tree) → rules engine (+ malware feed) → notify + dashboard + SQLite
+fs watcher → identify (walk process tree) → rules engine (+ malware feed) → notify + SQLite
+                                                                                    ↑
+                                              tripwire tui / CLI / menu-bar app read it directly
 ```
 
 A native Rust helper delivers kernel filesystem events; the daemon correlates
 them to a PID, runs them through your rules, enriches with the malware feed, and
-surfaces anything that matters. Rules are YAML and yours to edit
+writes everything to a local SQLite store. There's **no server and no open
+port** — the `tripwire` CLI, the `tripwire tui` inspector, and the macOS
+menu-bar app all read that store directly. Rules are YAML and yours to edit
 ([rule guide](./spec/docs/rules.md)).
 
 ## Status

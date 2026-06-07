@@ -16,7 +16,7 @@ export interface NotifyOptions {
 /**
  * Surface for getting attention. Mock for tests, native per-platform impls
  * for prod. Snooze + severity-threshold checks live in the notifier so
- * skipping these surfaces NEVER skips the dashboard log (spec §6.7.3).
+ * skipping these surfaces NEVER skips the store log (spec §6.7.3).
  */
 export interface Notifier {
   /** @returns true if a notification was actually dispatched. */

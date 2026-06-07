@@ -73,8 +73,8 @@ class Tripwire < Formula
       Start the daemon (autostart on login):
         brew services start tripwire
 
-      Dashboard:
-        http://localhost:7878
+      Inspect events (terminal UI):
+        tripwire tui
 
     EOS
     if File.exist?("#{prefix}/Tripwire Menubar.app")

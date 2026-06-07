@@ -24,7 +24,6 @@ export default defineConfig({
       '@tripwire/identity': resolve(__dirname, 'packages/identity/src/index.ts'),
       '@tripwire/engine': resolve(__dirname, 'packages/engine/src/index.ts'),
       '@tripwire/notifier': resolve(__dirname, 'packages/notifier/src/index.ts'),
-      '@tripwire/dashboard': resolve(__dirname, 'packages/dashboard/src/index.ts'),
       '@tripwire/daemon': resolve(__dirname, 'packages/daemon/src/index.ts'),
     },
   },

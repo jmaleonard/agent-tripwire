@@ -51,7 +51,7 @@ authored: 2026-05-16
 | Field | Required | Description |
 |-------|----------|-------------|
 | `id` | yes | Dotted lowercase. Format: `<type>.<family>.<specific>`. Types: `ioc`, `cred`, `persist`, `net`, `meta`. Must be globally unique. |
-| `name` | yes | Human-readable. Shown in terminal output and dashboard. |
+| `name` | yes | Human-readable. Shown in terminal output and the TUI. |
 | `severity` | yes | One of: `critical`, `high`, `medium`, `low`, `info`. See severity guide below. |
 | `category` | yes | One of: `credential-access`, `persistence`, `defense-evasion`, `exfiltration`, `metadata`. |
 | `description` | yes | What this catches, in plain language. |
@@ -68,7 +68,7 @@ authored: 2026-05-16
 | `critical` | Confirmed IoC match (responsible package on the IoC list) **plus** a credential read, or other unambiguous credential-theft pattern. Almost zero false positives expected. | Notification fires regardless of snooze (`critical` bypasses snooze; documented in spec). |
 | `high` | Strong indicator with a small false-positive surface. Patterns like `agent-subprocess` reads `~/.aws/credentials`, or write to `.claude/settings.json` from non-editor ancestry. | Notification fires unless snoozed. |
 | `medium` | Suspicious behavior with legitimate uses (e.g. an unknown-ancestry process reads `~/.npmrc`). | Notification fires unless snoozed; logged for investigation. |
-| `low` | Heuristic on its own (a write to a shell rc file from any ancestry). | Logged; surfaced in dashboard summary. Not notified by default. |
+| `low` | Heuristic on its own (a write to a shell rc file from any ancestry). | Logged; surfaced in `tripwire status` / the TUI. Not notified by default. |
 | `info` | Informational; no security implication on its own but useful in correlation. | Logged only. |
 
 When unsure, start at `medium` and review false-positive rate on the corpus before promoting.
@@ -271,7 +271,7 @@ The most common reason a new rule misbehaves: it's too broad on `ancestry_catego
 5. **Test against the corpus.** The corpus is a curated set of normal workflows (`ssh`, `aws sso login`, `gh auth login`, `npm install`, opening a project in VS Code, etc.). A rule that fires on any of these is wrong.
 6. **Look at the ancestry, not the process.** A `node` reading `~/.aws/credentials` is ambiguous; an `agent-subprocess` `node` reading it is suspicious; a `human-shell` `node` reading it (you ran a script) is fine.
 
-If you've done all of the above and still get false positives, the rule probably doesn't belong at `high`. Drop to `medium` and let the dashboard surface it without notifying.
+If you've done all of the above and still get false positives, the rule probably doesn't belong at `high`. Drop to `medium` and let the TUI surface it without notifying.
 
 ## Performance notes
 

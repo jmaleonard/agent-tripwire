@@ -2,7 +2,7 @@
 
 **A runtime detection daemon that tells you when something on your dev machine just touched a credential file or an agent config.**
 
-Watches your sensitive paths. Walks the process tree to figure out who did it. Pings you with a notification. Logs everything to a local dashboard. Local-first. Open rules. No cloud required.
+Watches your sensitive paths. Walks the process tree to figure out who did it. Pings you with a notification. Logs everything to a local SQLite store you inspect from a terminal UI. Local-first. Open rules. No cloud required.
 
 This is the **runtime layer** that install-time supply-chain blockers like [Aikido Safe Chain](https://aikido.dev/safe-chain) and [Socket Firewall](https://socket.dev/firewall) don't cover. Run tripwire alongside them, not instead.
 
@@ -30,11 +30,11 @@ Tripwire is built for that gap. It watches the things attackers want — your SS
 
 **Agent-aware process attribution.** When something fires, the daemon walks the process tree to PID 1, captures argv + environment, and classifies the ancestry: was this an interactive shell, a Claude Code subprocess, a package manager's postinstall, an editor? That classification is what takes the alert volume from 30/day to 1/week.
 
-**Notifications.** Native OS notifications (`notify-send` / Notification Center) with a small set of actions: open dashboard, allowlist this combo, snooze. **Phrased in past tense** — the read already happened. We tell you it happened; we don't pretend to prevent it.
+**Notifications.** Native OS notifications (`notify-send` / Notification Center) with a small set of actions: allowlist this combo, snooze. **Phrased in past tense** — the read already happened. We tell you it happened; we don't pretend to prevent it.
 
-**Snooze.** Two flavors: "shut up about *this* combo" and "shut up about *everything* for a while." Hard 24-hour ceiling. Dashboard logs are never silenced — only attention is.
+**Snooze.** Two flavors: "shut up about *this* combo" and "shut up about *everything* for a while." Hard 24-hour ceiling. The store log is never silenced — only attention is.
 
-**Local dashboard.** Everything is logged to SQLite. A web UI on `http://localhost:7878` shows the timeline, lets you investigate evidence, and manages allowlists and snoozes.
+**Local TUI.** Everything is logged to SQLite. `tripwire tui` is a terminal inspector that shows the timeline, lets you investigate evidence, and manages allowlists and snoozes — reading the store directly, with no server and no open port.
 
 **IoC enrichment.** A daily seeder pulls public IoC feeds (Aikido, OSV, GitHub Advisory) so when a flagged package fires a runtime rule, the notification tells you *which campaign* the package is associated with.
 
@@ -76,8 +76,8 @@ npm install -g @jmaleonard/agent-tripwire
 # Start the daemon and run the first-run wizard
 tripwire setup
 
-# Open the dashboard
-tripwire dashboard
+# Inspect events live in your terminal
+tripwire tui
 ```
 
 The setup wizard registers the daemon with `launchd` (macOS) or a systemd user unit (Linux), pulls the IoC feeds, prompts for notification permissions, and starts a 60-minute quiet period so you can tune your allowlist before notifications go live.
@@ -128,8 +128,8 @@ See [docs/rules.md](./docs/rules.md) for the full rule reference and authoring g
 │        │                     │                       │          │
 │        ▼                     ▼                       ▼          │
 │  ┌────────────┐      ┌──────────────┐      ┌──────────────────┐ │
-│  │ Notifier   │      │ Snooze       │      │ Local Dashboard  │ │
-│  │ native OS  │      │ subsystem    │      │ localhost:7878   │ │
+│  │ Notifier   │      │ Snooze       │      │ TUI + menu-bar   │ │
+│  │ native OS  │      │ subsystem    │      │ read the store   │ │
 │  │ (toast P2) │      │              │      │                  │ │
 │  └────────────┘      └──────────────┘      └──────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
@@ -142,7 +142,7 @@ Detection happens at the moment a process touches a watched path:
 3. **Rule engine evaluates.** Rules can scope by path *and* ancestry category. `ssh` reading `~/.ssh/id_rsa` is fine; an `agent-subprocess` doing the same fires.
 4. **Allowlist + snooze.** If the (rule, process-identity) is on the user's allowlist or currently snoozed, we log silently and stop.
 5. **Enrichment.** If the responsible package is in the IoC database, we attach attribution: "this package is on Aikido's list as Mini Shai-Hulud."
-6. **Notify.** Past-tense native notification. Action buttons: open dashboard, allowlist, snooze.
+6. **Notify.** Past-tense native notification. Action buttons: allowlist, snooze.
 
 ## Configuration
 
@@ -151,8 +151,8 @@ Configuration lives at `~/.tripwire/config.yaml`. Defaults are tuned for a typic
 ## Roadmap
 
 - **Phase 0 — IoC seeder** *(in progress)*. Pulls Aikido, OSV, and GitHub Advisory into a local enrichment database.
-- **Phase 1 — Runtime watcher + agent attribution** *(in progress, MVP)*. fanotify/fsevents, process tree walker, notifier, snooze, dashboard.
-- **Phase 2 — Network egress correlation + notification polish.** eBPF correlation of file reads with outbound connections. Tray icon, terminal toast, dashboard snooze UI.
+- **Phase 1 — Runtime watcher + agent attribution** *(in progress, MVP)*. fanotify/fsevents, process tree walker, notifier, snooze, TUI.
+- **Phase 2 — Network egress correlation + notification polish.** eBPF correlation of file reads with outbound connections. Tray icon, terminal toast, TUI snooze management.
 - **Phase 3–5 — Reach.** Windows support, fleet aggregation, IDE extensions.
 - **Phase 6 — Aikido Safe Chain integration.** Read Aikido's local logs and correlate install-time blocks with runtime activity.
 - **Phase 7+ — Research.** Synchronous blocking (turning tripwire from notifier into protector). Treated as research, not roadmap.
