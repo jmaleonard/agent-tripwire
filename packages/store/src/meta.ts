@@ -4,10 +4,9 @@ const HEARTBEAT_KEY = 'daemon_heartbeat';
 
 /**
  * Generic key/value access over the `meta` table. Its first use is the daemon
- * liveness heartbeat: the daemon writes `recordHeartbeat()` on a timer, and any
- * reader (CLI `status`/`doctor`, the TUI, the menu-bar app) can tell whether the
- * daemon is alive by reading `getHeartbeat()`, replacing the old HTTP
- * reachability check.
+ * liveness heartbeat: the daemon writes `recordHeartbeat()` on a timer; any
+ * reader (CLI `status`/`doctor`, the TUI, the menu-bar app) tells whether the
+ * daemon is alive by reading `getHeartbeat()`.
  */
 export class MetaRepository {
   private readonly db: DbHandle;

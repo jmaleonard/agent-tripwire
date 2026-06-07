@@ -701,15 +701,12 @@ CREATE TABLE iocs (
 );
 ```
 
-### 6.12 Inspection UI (TUI) — supersedes the dashboard
+### 6.12 Inspection UI (TUI)
 
-> **Superseded** (see the update note near the top of this spec). The HTTP
-> dashboard described in this section was removed. Inspection is now
-> `tripwire tui` — an Ink terminal UI reading the SQLite store directly — plus
-> the macOS menu-bar app. The route/endpoint list below is retained only as
-> historical reference for the data each view needs.
-
-Originally: single-page app served by a Hono server on `http://localhost:7878` (port configurable).
+`tripwire tui` is an Ink terminal UI that reads the SQLite store directly and
+shows the timeline, event detail, allowlist, and snoozes; the macOS menu-bar app
+surfaces the same at a glance. The endpoint list below is legacy reference for
+the data each view needs.
 
 **Routes:**
 - `GET /` — UI shell.

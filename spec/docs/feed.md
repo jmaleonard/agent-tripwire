@@ -77,7 +77,7 @@ npx esbuild scripts/publish-feed.mjs --bundle --platform=node --format=esm \
 ## Consumer — `IoCSyncService`
 
 `packages/daemon/src/ioc-sync.ts`. The daemon syncs on startup and every 6h
-(and on demand via `tripwire ioc sync`, which runs standalone — no server):
+(and on demand via `tripwire ioc sync`):
 
 1. Conditional `GET manifest.json` (ETag); `304` → nothing to do.
 2. `planSync(manifest, syncedDate)` → `up_to_date` | `delta` | `full`.
