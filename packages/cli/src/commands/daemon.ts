@@ -1,9 +1,10 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { Daemon } from '@tripwire/daemon';
-import { ApiClient } from '../api.js';
+import { computeSummary } from '@tripwire/store';
 import { cliPaths } from '../config.js';
 import { c } from '../format.js';
+import { DbNotFoundError, reportNoStore, withStore } from '../store.js';
 
 export async function daemonCommand(args: string[]): Promise<number> {
   const sub = args[0] ?? 'run';
@@ -24,8 +25,6 @@ async function runDaemon(args: string[]): Promise<number> {
 
   const dbFlag = args.indexOf('--db');
   const dbPath = dbFlag !== -1 && args[dbFlag + 1] ? args[dbFlag + 1]! : paths.dbPath;
-  const portFlag = args.indexOf('--port');
-  const port = portFlag !== -1 && args[portFlag + 1] ? Number(args[portFlag + 1]) : 7878;
 
   // Watcher is created by Daemon via createPlatformWatcher() — picks up the
   // Rust tripwire-watcher helper when present, falls back to MockFsWatcher.
@@ -33,7 +32,6 @@ async function runDaemon(args: string[]): Promise<number> {
   // overrides the manifest location, TRIPWIRE_NO_FEED_SYNC disables it.
   const daemon = await Daemon.start({
     dbPath,
-    dashboardPort: port,
     iocSync: {
       enabled: process.env.TRIPWIRE_NO_FEED_SYNC !== '1',
       ...(process.env.TRIPWIRE_FEED_URL ? { manifestUrl: process.env.TRIPWIRE_FEED_URL } : {}),
@@ -41,9 +39,9 @@ async function runDaemon(args: string[]): Promise<number> {
   });
 
   process.stdout.write(`${c.green}tripwired running${c.reset}\n`);
-  process.stdout.write(`  db:         ${dbPath}\n`);
-  process.stdout.write(`  dashboard:  http://127.0.0.1:${port}\n`);
-  process.stdout.write(`  pid:        ${process.pid}\n`);
+  process.stdout.write(`  db:       ${dbPath}\n`);
+  process.stdout.write(`  pid:      ${process.pid}\n`);
+  process.stdout.write(`  inspect:  ${c.cyan}tripwire tui${c.reset}  ${c.dim}(or tripwire status)${c.reset}\n`);
   process.stdout.write(`  ${c.dim}Press Ctrl-C to stop (or send SIGTERM).${c.reset}\n`);
 
   const shutdown = async (signal: string): Promise<void> => {
@@ -59,13 +57,20 @@ async function runDaemon(args: string[]): Promise<number> {
 }
 
 async function daemonStatus(): Promise<number> {
-  const api = new ApiClient();
-  if (await api.isReachable()) {
-    process.stdout.write(`${c.green}● tripwired is running${c.reset}\n`);
-    process.stdout.write(`  dashboard: ${process.env.TRIPWIRE_URL ?? 'http://127.0.0.1:7878'}\n`);
-    return 0;
+  try {
+    return await withStore(repos => {
+      const summary = computeSummary(repos);
+      if (summary.daemon.running) {
+        process.stdout.write(`${c.green}● tripwired is running${c.reset}\n`);
+        process.stdout.write(`  ${c.dim}last heartbeat ${summary.daemon.last_heartbeat}${c.reset}\n`);
+        return 0;
+      }
+      process.stdout.write(`${c.red}● tripwired is not running${c.reset}\n`);
+      process.stdout.write(`  Start it with: brew services start tripwire  (or tripwire daemon run)\n`);
+      return 1;
+    });
+  } catch (err) {
+    if (err instanceof DbNotFoundError) return reportNoStore();
+    throw err;
   }
-  process.stdout.write(`${c.red}● tripwired is not running${c.reset}\n`);
-  process.stdout.write(`  Start it with: tripwire daemon run\n`);
-  return 1;
 }

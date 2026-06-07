@@ -1,21 +1,14 @@
+import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { ApiClient } from '../api.js';
+import type { EventKind } from '@tripwire/shared';
+import { executeTestEvent } from '@tripwire/daemon';
+import { cliPaths } from '../config.js';
 import { c, severityBadge } from '../format.js';
+import { reportNoStore } from '../store.js';
 
-interface TestEventResponse {
-  ok: boolean;
-  fired: number;
-  events: Array<{
-    event_id: string;
-    rule_id: string;
-    severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
-    category: string;
-    snoozed: boolean;
-    notified: boolean;
-  }>;
-}
+const VALID_KINDS = new Set<EventKind>(['read', 'write', 'open', 'create', 'unlink', 'rename']);
 
-const PRESETS: Record<string, { path: string; kind: string }> = {
+const PRESETS: Record<string, { path: string; kind: EventKind }> = {
   aws: { path: '~/.aws/credentials', kind: 'read' },
   ssh: { path: '~/.ssh/id_rsa', kind: 'read' },
   gh: { path: '~/.config/gh/hosts.yml', kind: 'read' },
@@ -33,31 +26,33 @@ export async function testEventCommand(args: string[]): Promise<number> {
   }
 
   const preset = args[0] && !args[0].startsWith('--') ? PRESETS[args[0]] : undefined;
-  const path = readFlag(args, '--path') ?? preset?.path ?? `${homedir()}/.aws/credentials`;
-  const kind = readFlag(args, '--kind') ?? preset?.kind ?? 'read';
-  const pid = readFlag(args, '--pid');
+  const path = readFlag(args, '--path') ?? preset?.path ?? '~/.aws/credentials';
+  const kind = (readFlag(args, '--kind') ?? preset?.kind ?? 'read') as EventKind;
+  const pidRaw = readFlag(args, '--pid');
 
+  if (!VALID_KINDS.has(kind)) {
+    process.stderr.write(`Invalid --kind: ${kind} (${[...VALID_KINDS].join(' | ')})\n`);
+    return 1;
+  }
   const expandedPath = path.startsWith('~/') ? `${homedir()}/${path.slice(2)}` : path;
 
-  const api = new ApiClient();
-  if (!(await api.isReachable())) {
-    process.stderr.write(`${c.red}Daemon not reachable.${c.reset} Start it: ${c.cyan}brew services start tripwire${c.reset} or ${c.cyan}tripwire daemon run${c.reset}\n`);
-    return 2;
-  }
+  const { dbPath } = cliPaths();
+  if (!existsSync(dbPath)) return reportNoStore();
 
-  let result: TestEventResponse;
+  let events;
   try {
-    result = await api.post<TestEventResponse>('/api/test-event', {
+    events = await executeTestEvent({
+      dbPath,
       path: expandedPath,
       kind,
-      ...(pid !== undefined ? { pid: Number(pid) } : {}),
+      ...(pidRaw !== undefined ? { pid: Number(pidRaw) } : {}),
     });
   } catch (err) {
     process.stderr.write(`${c.red}test-event failed:${c.reset} ${(err as Error).message}\n`);
     return 1;
   }
 
-  if (result.fired === 0) {
+  if (events.length === 0) {
     process.stdout.write(
       `${c.yellow}No rule matched${c.reset} for ${expandedPath} (${kind}).\n` +
         `${c.dim}Either the path isn't watched by any rule, or the firing process's ancestry was allowlisted.${c.reset}\n`,
@@ -65,8 +60,8 @@ export async function testEventCommand(args: string[]): Promise<number> {
     return 0;
   }
 
-  process.stdout.write(`${c.green}Fired ${result.fired} event${result.fired === 1 ? '' : 's'}:${c.reset}\n`);
-  for (const e of result.events) {
+  process.stdout.write(`${c.green}Fired ${events.length} event${events.length === 1 ? '' : 's'}:${c.reset}\n`);
+  for (const e of events) {
     const tail = [
       e.notified ? `${c.green}notified${c.reset}` : `${c.dim}silent${c.reset}`,
       e.snoozed ? `${c.magenta}snoozed${c.reset}` : null,
@@ -74,7 +69,7 @@ export async function testEventCommand(args: string[]): Promise<number> {
       .filter(Boolean)
       .join(' · ');
     process.stdout.write(
-      `  ${severityBadge(e.severity)}  ${e.rule_id}  ${c.dim}(${e.category})${c.reset}  [${tail}]\n`,
+      `  ${severityBadge(e.severity)}  ${e.rule_id}  ${c.dim}(${e.identity.category})${c.reset}  [${tail}]\n`,
     );
   }
   return 0;

@@ -1,17 +1,49 @@
 import { existsSync } from 'node:fs';
 import { platform } from 'node:os';
-import { ApiClient } from '../api.js';
+import { computeSummary } from '@tripwire/store';
 import { cliPaths } from '../config.js';
 import { c } from '../format.js';
+import { DbNotFoundError, withStore } from '../store.js';
 
 type CheckResult = { ok: boolean; label: string; detail?: string };
+
+const FEED_FRESH_MS = 48 * 60 * 60 * 1000;
 
 export async function doctorCommand(_args: string[]): Promise<number> {
   const results: CheckResult[] = [];
   results.push(checkNodeVersion());
   results.push(checkTripwireDir());
-  results.push(await checkDaemonReachable());
   results.push(checkPlatform());
+
+  try {
+    await withStore(repos => {
+      const summary = computeSummary(repos);
+      results.push({
+        ok: summary.daemon.running,
+        label: 'daemon is running',
+        detail: summary.daemon.running
+          ? `last heartbeat ${summary.daemon.last_heartbeat}`
+          : 'start it with: brew services start tripwire (or tripwire daemon run)',
+      });
+
+      const feed = repos.feedState.get();
+      const fresh =
+        feed.lastSyncAt !== null && Date.now() - Date.parse(feed.lastSyncAt) < FEED_FRESH_MS;
+      results.push({
+        ok: fresh,
+        label: 'IoC feed refreshed in the last 48h',
+        detail: feed.lastSyncAt
+          ? `last sync ${feed.lastSyncAt} · ${repos.iocs.count()} IoCs`
+          : 'never synced — run: tripwire ioc sync',
+      });
+    });
+  } catch (err) {
+    if (err instanceof DbNotFoundError) {
+      results.push({ ok: false, label: '~/.tripwire/events.db exists', detail: 'run: tripwire setup' });
+    } else {
+      throw err;
+    }
+  }
 
   let bad = 0;
   for (const r of results) {
@@ -31,10 +63,9 @@ export async function doctorCommand(_args: string[]): Promise<number> {
 
 function checkNodeVersion(): CheckResult {
   const major = Number(process.versions.node.split('.')[0]);
-  const ok = major >= 22;
   return {
-    ok,
-    label: `Node version ≥ 22`,
+    ok: major >= 22,
+    label: 'Node version ≥ 22',
     detail: `running on Node ${process.versions.node}`,
   };
 }
@@ -44,26 +75,16 @@ function checkTripwireDir(): CheckResult {
   const ok = existsSync(paths.tripwireDir);
   return {
     ok,
-    label: `~/.tripwire/ exists`,
-    detail: ok ? paths.tripwireDir : `run: tripwire setup`,
+    label: '~/.tripwire/ exists',
+    detail: ok ? paths.tripwireDir : 'run: tripwire setup',
   };
-}
-
-async function checkDaemonReachable(): Promise<CheckResult> {
-  const api = new ApiClient();
-  const ok = await api.isReachable();
-  const label = `daemon is reachable at ${process.env.TRIPWIRE_URL ?? 'http://127.0.0.1:7878'}`;
-  return ok
-    ? { ok: true, label }
-    : { ok: false, label, detail: 'start it with: tripwire daemon run' };
 }
 
 function checkPlatform(): CheckResult {
   const p = platform();
-  const ok = p === 'darwin' || p === 'linux';
   return {
-    ok,
-    label: `supported platform (darwin / linux)`,
+    ok: p === 'darwin' || p === 'linux',
+    label: 'supported platform (darwin / linux)',
     detail: `running on ${p}`,
   };
 }

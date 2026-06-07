@@ -1,42 +1,40 @@
-import { ApiClient } from '../api.js';
-import { parseSnoozeWindow, formatRemaining } from '../duration.js';
+import type { SnoozeKind } from '@tripwire/shared';
+import type { SnoozeRepository } from '@tripwire/store';
+import { formatRemaining, parseSnoozeWindow } from '../duration.js';
 import { c, renderTable } from '../format.js';
-
-interface Snooze {
-  id: number;
-  kind: 'this' | 'all';
-  rule_id?: string;
-  ancestry_hash?: string;
-  expires_at: string;
-  created_at: string;
-  reason?: string;
-}
+import { DbNotFoundError, reportNoStore, withStore } from '../store.js';
 
 export async function snoozeCommand(args: string[]): Promise<number> {
   const sub = args[0] ?? 'list';
-  const api = new ApiClient();
-  switch (sub) {
-    case 'list':
-      return listSnoozes(api);
-    case 'add':
-      return addSnooze(api, args.slice(1));
-    case 'clear':
-      return clearSnooze(api, args.slice(1));
-    default:
-      process.stderr.write(`Unknown snooze subcommand: ${sub}\n`);
-      printUsage();
-      return 1;
+  try {
+    return await withStore(({ snoozes }) => {
+      switch (sub) {
+        case 'list':
+          return listSnoozes(snoozes);
+        case 'add':
+          return addSnooze(snoozes, args.slice(1));
+        case 'clear':
+          return clearSnooze(snoozes, args.slice(1));
+        default:
+          process.stderr.write(`Unknown snooze subcommand: ${sub}\n`);
+          printUsage();
+          return 1;
+      }
+    });
+  } catch (err) {
+    if (err instanceof DbNotFoundError) return reportNoStore();
+    throw err;
   }
 }
 
-async function listSnoozes(api: ApiClient): Promise<number> {
-  const { snoozes } = await api.get<{ snoozes: Snooze[] }>('/api/snoozes');
-  if (snoozes.length === 0) {
+function listSnoozes(snoozes: SnoozeRepository): number {
+  const now = new Date();
+  const active = snoozes.listActive(now);
+  if (active.length === 0) {
     process.stdout.write(`${c.dim}No active snoozes.${c.reset}\n`);
     return 0;
   }
-  const now = new Date();
-  const rows = snoozes.map(s => [
+  const rows = active.map(s => [
     String(s.id),
     s.kind,
     s.rule_id ?? '—',
@@ -58,7 +56,7 @@ async function listSnoozes(api: ApiClient): Promise<number> {
   return 0;
 }
 
-async function addSnooze(api: ApiClient, args: string[]): Promise<number> {
+function addSnooze(snoozes: SnoozeRepository, args: string[]): number {
   const windowArg = args[0];
   if (!windowArg) {
     process.stderr.write('tripwire snooze add <window>  e.g. 5m, 15m, 1h, 4h, until_morning\n');
@@ -66,36 +64,38 @@ async function addSnooze(api: ApiClient, args: string[]): Promise<number> {
   }
   const ruleId = readFlag(args, '--rule');
   const ancestry = readFlag(args, '--ancestry');
-  const expiresAt = parseSnoozeWindow(windowArg).toISOString();
-  const kind = ruleId && ancestry ? 'this' : 'all';
-  const body: Record<string, unknown> = { kind, expires_at: expiresAt };
-  if (kind === 'this') {
-    body.rule_id = ruleId;
-    body.ancestry_hash = ancestry;
-  }
   const reason = readFlag(args, '--reason');
-  if (reason) body.reason = reason;
+  const kind: SnoozeKind = ruleId && ancestry ? 'this' : 'all';
 
-  const created = await api.post<Snooze>('/api/snoozes', body);
+  const base = {
+    expires_at: parseSnoozeWindow(windowArg).toISOString(),
+    created_at: new Date().toISOString(),
+    ...(reason ? { reason } : {}),
+  };
+  const created =
+    kind === 'this'
+      ? snoozes.add({ kind, rule_id: ruleId!, ancestry_hash: ancestry!, ...base })
+      : snoozes.add({ kind, ...base });
+
   process.stdout.write(
     `${c.green}Snoozed${c.reset} (id ${created.id}, ${kind}) until ${created.expires_at}\n`,
   );
   return 0;
 }
 
-async function clearSnooze(api: ApiClient, args: string[]): Promise<number> {
+function clearSnooze(snoozes: SnoozeRepository, args: string[]): number {
   const id = args[0];
+  let removed: number;
   if (id === undefined || id === 'all') {
-    const { removed } = await api.del<{ removed: number }>('/api/snoozes');
-    process.stdout.write(`Cleared ${removed} snooze${removed === 1 ? '' : 's'}.\n`);
-    return 0;
+    removed = snoozes.clear();
+  } else {
+    const n = Number(id);
+    if (!Number.isFinite(n)) {
+      process.stderr.write(`Invalid snooze id: ${id}\n`);
+      return 1;
+    }
+    removed = snoozes.clear(n);
   }
-  const n = Number(id);
-  if (!Number.isFinite(n)) {
-    process.stderr.write(`Invalid snooze id: ${id}\n`);
-    return 1;
-  }
-  const { removed } = await api.del<{ removed: number }>(`/api/snoozes/${n}`);
   process.stdout.write(`Cleared ${removed} snooze${removed === 1 ? '' : 's'}.\n`);
   return 0;
 }

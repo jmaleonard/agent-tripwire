@@ -10,3 +10,9 @@ export { DEFAULT_RULES } from './default-rules.js';
 export { defaultWatchPaths } from './default-paths.js';
 export { handleFsEvent, type PipelineDeps } from './pipeline.js';
 export { createPlatformReader } from './platform.js';
+export {
+  executeTestEvent,
+  runIocSync,
+  type ExecuteTestEventOptions,
+  type RunIocSyncOptions,
+} from './oneshot.js';

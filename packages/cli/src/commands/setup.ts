@@ -37,7 +37,7 @@ export async function setupCommand(_args: string[]): Promise<number> {
         reason: `first-run quiet period (${QUIET_PERIOD_MINUTES} min)`,
       });
       process.stdout.write(
-        `${c.green}✓${c.reset} first-run quiet period: notifications silenced for ${QUIET_PERIOD_MINUTES} min ${c.dim}(dashboard still logs)${c.reset}\n`,
+        `${c.green}✓${c.reset} first-run quiet period: notifications silenced for ${QUIET_PERIOD_MINUTES} min ${c.dim}(events still recorded)${c.reset}\n`,
       );
     } else {
       process.stdout.write(`${c.dim}~${c.reset} snoozes table already populated, skipping quiet period\n`);
@@ -49,7 +49,7 @@ export async function setupCommand(_args: string[]): Promise<number> {
   process.stdout.write(`\n${c.bold}Next steps${c.reset}\n`);
   process.stdout.write(`  • Start the daemon: ${c.cyan}brew services start tripwire${c.reset}\n`);
   process.stdout.write(`    or ad-hoc:        ${c.cyan}tripwire daemon run${c.reset}\n`);
-  process.stdout.write(`  • Open dashboard:   ${c.cyan}tripwire dashboard${c.reset}\n`);
+  process.stdout.write(`  • Inspect events:   ${c.cyan}tripwire tui${c.reset}\n`);
   process.stdout.write(`  • Quick status:     ${c.cyan}tripwire status${c.reset}\n`);
   process.stdout.write(`  • If macOS prompts to allow notifications, allow them.\n`);
   return 0;

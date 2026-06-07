@@ -1,7 +1,6 @@
 import { c } from './format.js';
 import { allowlistCommand } from './commands/allowlist.js';
 import { daemonCommand } from './commands/daemon.js';
-import { dashboardCommand } from './commands/dashboard.js';
 import { doctorCommand } from './commands/doctor.js';
 import { iocCommand } from './commands/ioc.js';
 import { setupCommand } from './commands/setup.js';
@@ -19,7 +18,6 @@ const COMMANDS: Record<string, Handler> = {
   snooze: snoozeCommand,
   allowlist: allowlistCommand,
   ioc: iocCommand,
-  dashboard: dashboardCommand,
   daemon: daemonCommand,
   'test-event': testEventCommand,
   uninstall: uninstallCommand,
@@ -60,9 +58,8 @@ ${c.bold}Commands${c.reset}
   ${c.cyan}allowlist${c.reset}      list / add / remove allowlist entries
   ${c.cyan}ioc${c.reset} <package>  look up IoC entries for a package
   ${c.cyan}ioc${c.reset} sync       pull the latest IoC feed into the local DB
-  ${c.cyan}dashboard${c.reset}      open http://localhost:7878 in your browser
-  ${c.cyan}doctor${c.reset}         health checks (Node version, daemon reachable, etc.)
-  ${c.cyan}test-event${c.reset}     inject a synthetic FsEvent into the running daemon
+  ${c.cyan}doctor${c.reset}         health checks (Node version, daemon running, feed freshness)
+  ${c.cyan}test-event${c.reset}     fire a synthetic FsEvent through the detection pipeline
   ${c.cyan}uninstall${c.reset}      print uninstall steps; --purge also deletes ~/.tripwire/
 
 ${c.bold}Examples${c.reset}
@@ -76,7 +73,7 @@ ${c.bold}Examples${c.reset}
   tripwire test-event aws                # fire a synthetic ~/.aws/credentials read
   tripwire test-event --path ~/.ssh/id_rsa --kind read
 
-${c.bold}Environment${c.reset}
-  TRIPWIRE_URL    daemon HTTP base, defaults to http://127.0.0.1:7878
+${c.bold}Data${c.reset}
+  ~/.tripwire/events.db   local event store; the CLI, TUI, and daemon share it
 `);
 }
