@@ -116,6 +116,11 @@ from-source, and troubleshooting.
 
 Rules are YAML and yours to edit — see the [rule guide](./spec/docs/rules.md).
 
+> The credential-**read** rules above fire today on Linux (`fanotify`). On
+> macOS they await Apple's Endpoint Security entitlement — see
+> [macOS read detection](#macos-read-detection). Write and persistence rules
+> work on macOS now.
+
 ## How it works
 
 ```
@@ -128,6 +133,24 @@ A native Rust helper delivers kernel filesystem events; the daemon correlates
 them to a PID, classifies the ancestry, runs your rules, enriches with the
 malware feed, and writes everything to a local SQLite store that the CLI, the
 `tripwire tui` inspector, and the macOS menu-bar app read directly.
+
+## macOS read detection
+
+Catching a credential **read** — not just a write — is the heart of what
+Tripwire does. On **Linux**, the `fanotify` watcher delivers reads with the
+real PID today, so the credential-read rules above fire as advertised.
+
+On **macOS**, the kernel only reports file *reads* to clients holding Apple's
+restricted **Endpoint Security** entitlement, which Apple grants to vetted
+security vendors. Without it, the macOS watcher (built on FSEvents) sees
+*writes* and persistence events — shell-rc edits, `.claude/settings.json`,
+LaunchAgent drops — but not raw credential reads. This is Apple's security
+boundary working as designed, not a bug we can engineer around.
+
+**The plan:** if this gets traction, I'll put up the ~$100/yr Apple Developer
+Program fee, apply for the Endpoint Security entitlement, and ship the macOS
+watcher as a signed system extension — the same path every Mac EDR takes. That
+brings full read attribution to macOS to match Linux.
 
 ## Use it
 
@@ -151,8 +174,10 @@ quiet and useful. Start with [CONTRIBUTING](./spec/CONTRIBUTING.md).
 ## Status
 
 Alpha. The daemon, CLI, `tripwire tui`, macOS menu-bar app, and the malware feed
-all work; macOS is the primary platform and the Linux `fanotify` watcher has
-landed. The feed is published daily and free to host — see
+all work. Full credential-**read** detection is live on Linux (`fanotify`); on
+macOS the watcher catches writes and persistence today, with raw reads pending
+the Apple entitlement — see [macOS read detection](#macos-read-detection). The
+feed is published daily and free to host — see
 [`spec/docs/feed.md`](./spec/docs/feed.md).
 
 ## More
