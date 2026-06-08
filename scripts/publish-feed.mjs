@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { join } from 'node:path';
 import {
   AikidoFeed,
+  GhsaFeed,
   parseManifest,
   parseSnapshot,
   planPublish,
@@ -56,7 +57,12 @@ function readJson(path) {
 
 /** Run the seeder; fail loudly if every source is down. */
 async function seedToday() {
-  const seed = await runSeeder([new AikidoFeed()]);
+  const seed = await runSeeder([
+    new AikidoFeed(),
+    // GITHUB_TOKEN lifts the advisories API from 60/hr to 5000/hr; the malware
+    // corpus needs it. A failing source is logged but won't abort the run.
+    new GhsaFeed({ token: process.env.GITHUB_TOKEN }),
+  ]);
   if (!seed.sourceStats.some(s => s.ok)) {
     throw new Error(`all feed sources failed: ${JSON.stringify(seed.sourceStats)}`);
   }
