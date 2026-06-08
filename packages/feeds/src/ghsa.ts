@@ -1,4 +1,5 @@
 import type { Ecosystem, IoCEntry } from '@tripwire/shared';
+import { githubHeaders, nextLink } from './github.js';
 import type { FeedHealth, FeedSource, RefreshOptions } from './source.js';
 
 export const GHSA_ADVISORIES_URL = 'https://api.github.com/advisories';
@@ -57,16 +58,6 @@ export class GhsaFeed implements FeedSource {
     this.maxPages = opts.maxPages ?? 100;
   }
 
-  private headers(): Record<string, string> {
-    const h: Record<string, string> = {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'tripwire-feed',
-    };
-    if (this.token) h.Authorization = `Bearer ${this.token}`;
-    return h;
-  }
-
   async *refresh(opts: RefreshOptions = {}): AsyncIterable<IoCEntry> {
     const fetchImpl = opts.fetch ?? this.fetchImpl;
     const now = new Date().toISOString();
@@ -77,7 +68,7 @@ export class GhsaFeed implements FeedSource {
 
       while (url && pages < this.maxPages) {
         const res = await fetchImpl(url, {
-          headers: this.headers(),
+          headers: githubHeaders(this.token),
           ...(opts.signal ? { signal: opts.signal } : {}),
         });
         if (!res.ok) {
@@ -115,7 +106,7 @@ export class GhsaFeed implements FeedSource {
     const lastChecked = new Date().toISOString();
     try {
       const res = await this.fetchImpl(`${this.baseUrl}?type=malware&ecosystem=npm&per_page=1`, {
-        headers: this.headers(),
+        headers: githubHeaders(this.token),
       });
       return res.ok
         ? { ok: true, lastChecked }
@@ -135,14 +126,4 @@ export class GhsaFeed implements FeedSource {
 function normalizeRange(range: string | null): string {
   if (!range || range.trim() === '>= 0') return '*';
   return range.trim();
-}
-
-/** Extract the rel="next" URL from a GitHub `Link` header, or null. */
-function nextLink(link: string | null): string | null {
-  if (!link) return null;
-  for (const part of link.split(',')) {
-    const m = part.match(/<([^>]+)>\s*;\s*rel="next"/);
-    if (m) return m[1] ?? null;
-  }
-  return null;
 }
