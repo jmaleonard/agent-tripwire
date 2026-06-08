@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import {
   AikidoFeed,
   GhsaFeed,
+  CommunityFeed,
   parseManifest,
   parseSnapshot,
   planPublish,
@@ -62,6 +63,10 @@ async function seedToday() {
     // GITHUB_TOKEN lifts the advisories API from 60/hr to 5000/hr; the malware
     // corpus needs it. A failing source is logged but won't abort the run.
     new GhsaFeed({ token: process.env.GITHUB_TOKEN }),
+    // Approved community reports (moderated): GitHub issues labeled
+    // ioc-report + approved, not yet ingested. The workflow marks them ingested
+    // after publish so they are not re-added.
+    new CommunityFeed({ repo: process.env.FEED_REPO, token: process.env.GITHUB_TOKEN }),
   ]);
   if (!seed.sourceStats.some(s => s.ok)) {
     throw new Error(`all feed sources failed: ${JSON.stringify(seed.sourceStats)}`);
